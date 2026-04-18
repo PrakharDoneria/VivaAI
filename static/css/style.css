@@ -202,9 +202,10 @@ h3 { font-size: 1.25rem; }
 }
 
 .btn-primary:hover {
-    box-shadow: 0 4px 25px rgba(59,130,246,.4);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
+
 
 .btn-success {
     background: linear-gradient(135deg, var(--success), #059669);

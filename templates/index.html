@@ -66,9 +66,9 @@
                 <div class="form-group mic-test-group"
                     style="text-align: center; border: 1px dashed rgba(255,255,255,0.2); padding: 16px; border-radius: 8px;">
                     <label class="form-label" style="text-align: left;">Audio Test (Optional)</label>
-                    <button class="btn btn-ghost" id="testMicBtn" onclick="testMicrophone()" type="button"
-                        style="width: 100%; border: 1px solid var(--border-color);">
-                        🎤 Test Microphone
+                    <button class="btn btn-primary btn-lg" id="startBtn" onclick="createInterview()">
+                        <span id="btnText">🚀 Start Interview Session</span>
+                        <span id="loader" style="display:none; margin-left:10px;">⏳</span>
                     </button>
                     <div id="micMeterControls" style="display: none;">
                         <span
@@ -118,7 +118,13 @@
     <script>
         function showStatus(msg, type = "info") {
             const el = document.getElementById("statusMsg");
-            el.textContent = msg;
+
+            let icon = "ℹ️";
+            if (type === "success") icon = "✅";
+            if (type === "error") icon = "❌";
+            if (type === "warning") icon = "⚠️";
+
+            el.textContent = icon + " " + msg;
             el.className = `status-msg status-${type}`;
             el.style.display = "block";
         }
@@ -205,9 +211,12 @@
         }
 
         async function createInterview() {
-            const name = document.getElementById("candidateName").value.trim();
-            const role = document.getElementById("role").value;
+            const btnText = document.getElementById("btnText");
+            const loader = document.getElementById("loader");
 
+            btn.disabled = true;
+            btnText.textContent = "Creating...";
+            loader.style.display = "inline";
             if (!name) {
                 showStatus("Please enter your name to continue.", "warning");
                 document.getElementById("candidateName").focus();
@@ -268,10 +277,14 @@
         }
 
         // Allow Enter key to submit
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") createInterview();
+        document.getElementById("candidateName").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") createInterview();
         });
+        window.onload = () => {
+        document.getElementById("candidateName").focus();
+        };
     </script>
+
 
 </body>
 
