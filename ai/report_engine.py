@@ -2,6 +2,8 @@ import re
 from urllib import response
 from sarvamai import SarvamAI
 from config import Config
+import os
+import re
 
 
 def get_client():
@@ -44,12 +46,13 @@ Be fair, constructive and professional."""
     
     response = client.chat.completions(
         model="sarvam-m",
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": "You are an AI interviewer."},
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.3,
-        top_p=1,
         max_tokens=600
     )
-    import re
 
     clean_response = re.sub(
         r"<think>.*?</think>",

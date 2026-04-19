@@ -61,33 +61,48 @@
                         <option value="Cloud Architect">Cloud Architect</option>
                     </select>
                 </div>
-
+                
                 <!-- Mic Test Section -->
                 <div class="form-group mic-test-group"
                     style="text-align: center; border: 1px dashed rgba(255,255,255,0.2); padding: 16px; border-radius: 8px;">
+
                     <label class="form-label" style="text-align: left;">Audio Test (Optional)</label>
-                    <button class="btn btn-primary btn-lg" id="startBtn" onclick="createInterview()">
+
+                <!-- ✅ Test Mic Button -->
+                    <button id="testMicBtn" onclick="testMicrophone()" class="btn btn-secondary btn-sm" type="button">
+                        🎤 Test Microphone
+                    </button>
+
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="btn btn-primary btn-lg" id="startBtn" onclick="createInterview()">
                         <span id="btnText">🚀 Start Interview Session</span>
                         <span id="loader" style="display:none; margin-left:10px;">⏳</span>
                     </button>
-                    <div id="micMeterControls" style="display: none;">
-                        <span
-                            style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; display: block;">Speak
-                            to test your microphone</span>
-                        <div
-                            style="width: 100%; height: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; overflow: hidden; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                            <div id="micVolumeBar"
-                                style="height: 100%; width: 0%; background: var(--success); transition: width 0.05s ease;">
-                            </div>
-                        </div>
-                        <button class="btn btn-ghost btn-sm" onclick="stopMicTest()" type="button"
-                            style="color: var(--danger);">Stop Test</button>
                     </div>
+
+                <!-- Mic Meter Controls -->
+                    <div id="micMeterControls" style="display: none; margin-top: 10px;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 8px;">
+                        Speak to test your microphone
+                        </span>
+
+                    <div style="width: 100%; height: 10px; background: rgba(0,0,0,0.3);
+                        border-radius: 6px; overflow: hidden; margin-bottom: 12px;
+                        border: 1px solid rgba(255,255,255,0.1);">
+
+                    <div id="micVolumeBar"
+                        style="height: 100%; width: 0%; background: var(--success);
+                        transition: width 0.05s ease;">
                 </div>
+            </div>
 
+            <button class="btn btn-ghost btn-sm" onclick="stopMicTest()" type="button"
+                style="color: var(--danger);">
+                Stop Test
+            </button>
+            </div>
 
-
-                <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 14px;">
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 14px;">
                     A shareable room link will be generated for your interviewer.
                 </p>
             </div>
