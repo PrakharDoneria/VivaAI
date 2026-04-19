@@ -85,9 +85,7 @@
                     </div>
                 </div>
 
-                <button class="btn btn-primary btn-lg" id="startBtn" onclick="createInterview()" style="width: 100%;">
-                    🚀 Start Interview Session
-                </button>
+
 
                 <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 14px;">
                     A shareable room link will be generated for your interviewer.
@@ -211,70 +209,67 @@
         }
 
         async function createInterview() {
+
+            const name = document.getElementById("candidateName").value.trim();
+            const role = document.getElementById("role").value;
+
+            const btn = document.getElementById("startBtn");
             const btnText = document.getElementById("btnText");
             const loader = document.getElementById("loader");
 
-            btn.disabled = true;
-            btnText.textContent = "Creating...";
-            loader.style.display = "inline";
             if (!name) {
                 showStatus("Please enter your name to continue.", "warning");
                 document.getElementById("candidateName").focus();
                 return;
             }
 
-            const btn = document.getElementById("startBtn");
             btn.disabled = true;
-            btn.textContent = "Checking permissions…";
+            btnText.textContent = "Checking permissions...";
+            loader.style.display = "inline";
 
-            // Pre-flight check for camera & mic permissions
+            // Permission check
             try {
-                if (typeof stopMicTest === "function") stopMicTest(); // Ensure our test mic is closed
-
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error("Your browser does not support camera/microphone access in this context (try using localhost instead of your IP).");
-                }
-                const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                // Permission granted, close tracks immediately
-                testStream.getTracks().forEach(track => track.stop());
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                stream.getTracks().forEach(track => track.stop());
             } catch (err) {
-                let msg = "Camera/microphone access denied. Please click the camera icon in your address bar to allow permissions, then try again.";
-                if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-                    msg = "No camera or microphone found. Please connect your devices and try again.";
-                } else if (err.message && err.message.includes("context")) {
-                    msg = err.message;
-                }
-                showStatus(msg, "error");
+                showStatus("Camera/mic permission denied", "error");
                 btn.disabled = false;
-                btn.textContent = "🚀 Start Interview Session";
+                btnText.textContent = "🚀 Start Interview Session";
+                loader.style.display = "none";
                 return;
             }
 
-            btn.textContent = "Creating room…";
-            showStatus("Permissions granted. Setting up your interview room…", "info");
+            btnText.textContent = "Creating room...";
 
             const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
             try {
                 const res = await fetch("/api/interview/create", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ room_id: roomId, role, candidate_name: name })
-                });
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    room_id: roomId,
+                    role: role,
+                    candidate_name: name
+                })
+            });
 
-                const data = await res.json();
+            const data = await res.json();
 
-                if (data.status === "created") {
-                    window.location.href = `/interview/${data.room_id}`;
-                } else {
-                    throw new Error(data.error || "Failed to create interview");
-                }
+            if (data.status === "created") {
+                window.location.href = `/interview/${data.room_id}`;
+            } else {
+                throw new Error(data.error || "Failed");
+            }
+
             } catch (err) {
                 showStatus("Error: " + err.message, "error");
                 btn.disabled = false;
-                btn.textContent = "🚀 Start Interview Session";
+                btnText.textContent = "🚀 Start Interview Session";
+                loader.style.display = "none";
             }
         }
+        
 
         // Allow Enter key to submit
         document.getElementById("candidateName").addEventListener("keydown", (e) => {

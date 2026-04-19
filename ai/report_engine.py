@@ -1,3 +1,5 @@
+import re
+from urllib import response
 from sarvamai import SarvamAI
 from config import Config
 
@@ -31,11 +33,32 @@ Provide a detailed evaluation with:
 
 Be fair, constructive and professional."""
 
+    # response = client.chat.completions(
+    #     messages=[{"role": "user", "content": prompt}],
+    #     temperature=0.3,
+    #     top_p=1,
+    #     max_tokens=600
+    # )
+
+    # return response.choices[0].message.content
+    
     response = client.chat.completions(
+        model="sarvam-m",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
         top_p=1,
         max_tokens=600
     )
+    import re
+
+    clean_response = re.sub(
+        r"<think>.*?</think>",
+        "",
+        response.choices[0].message.content,
+        flags=re.DOTALL
+    )
+
+    return clean_response.strip()
 
     return response.choices[0].message.content
+    
