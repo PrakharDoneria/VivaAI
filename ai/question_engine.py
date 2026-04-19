@@ -1,8 +1,5 @@
-from urllib import response
 from sarvamai import SarvamAI
 from config import Config
-import os
-import re
 
 
 def get_client():
@@ -37,33 +34,17 @@ Start the interview with a warm greeting and ask your first interview question.
 Be conversational and professional.
 Return ONLY the greeting + question text, nothing else."""
 
-    # response = client.chat.completions(
-    #     messages=[{"role": "user", "content": prompt}],
-    #     temperature=0.6,
-    #     top_p=1,
-    #     max_tokens=250
-    # )
-
-    # return response.choices[0].message.content
-    
     response = client.chat.completions(
         model="sarvam-m",
-        messages=[
-            {"role": "system", "content": "You are an AI interviewer."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3,
-        max_tokens=600
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.6,
+        top_p=1,
+        max_tokens=250
     )
-
-
-    clean_response = re.sub(
-        r"<think>.*?</think>",
-        "",
-        response.choices[0].message.content,
-        flags=re.DOTALL
-    )
-
-    return clean_response.strip()
 
     return response.choices[0].message.content
+
+    if "<think>" in content:
+        content = content.split("</think>")[-1]
+
+    return content.strip()
