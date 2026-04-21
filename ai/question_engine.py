@@ -35,6 +35,7 @@ Be conversational and professional.
 Return ONLY the greeting + question text, nothing else."""
 
     response = client.chat.completions(
+        model=Config.SARVAM_CHAT_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.6,
         top_p=1,

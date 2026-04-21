@@ -32,6 +32,7 @@ Provide a detailed evaluation with:
 Be fair, constructive and professional."""
 
     response = client.chat.completions(
+        model=Config.SARVAM_CHAT_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
         top_p=1,
