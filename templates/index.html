@@ -118,7 +118,14 @@
     <script>
         function showStatus(msg, type = "info") {
             const el = document.getElementById("statusMsg");
-            el.textContent = msg;
+            let icon = "";
+
+if (type === "success") icon = "✅ ";
+else if (type === "error") icon = "❌ ";
+else if (type === "warning") icon = "⚠️ ";
+else icon = "ℹ️ ";
+
+el.textContent = icon + msg;
             el.className = `status-msg status-${type}`;
             el.style.display = "block";
         }
@@ -216,7 +223,7 @@
 
             const btn = document.getElementById("startBtn");
             btn.disabled = true;
-            btn.textContent = "Checking permissions…";
+            btn.innerHTML = "⏳ Checking permissions...";
 
             // Pre-flight check for camera & mic permissions
             try {
@@ -241,7 +248,7 @@
                 return;
             }
 
-            btn.textContent = "Creating room…";
+            btn.innerHTML = "🚀 Creating room...";
             showStatus("Permissions granted. Setting up your interview room…", "info");
 
             const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -267,10 +274,14 @@
             }
         }
 
-        // Allow Enter key to submit
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") createInterview();
-        });
+       document.getElementById("candidateName").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        createInterview();
+    }
+});
+window.onload = () => {
+    document.getElementById("candidateName").focus();
+};
     </script>
 
 </body>

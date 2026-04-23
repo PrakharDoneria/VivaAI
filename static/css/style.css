@@ -698,3 +698,7 @@ audio {
     .control-bar { gap: 8px; }
     .btn { padding: 9px 16px; font-size: 0.825rem; }
 }
+.btn:hover {
+    transform: scale(1.05);
+    transition: 0.2s ease;
+}
