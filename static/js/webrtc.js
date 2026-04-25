@@ -128,7 +128,8 @@ function createPeerConnection(roomId) {
         if (event.candidate) {
             socket.emit("ice-candidate", {
                 room: roomId,
-                candidate: event.candidate
+                candidate: event.candidate,
+                token: _roomToken()
             });
         }
     };
@@ -154,7 +155,7 @@ async function createOffer(roomId) {
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
 
-    socket.emit("offer", { room: roomId, offer: offer });
+    socket.emit("offer", { room: roomId, offer: offer, token: _roomToken() });
     console.log("[WebRTC] Offer sent");
 }
 
@@ -166,7 +167,7 @@ window.handleOffer = async function (data) {
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    socket.emit("answer", { room: data.room, answer: answer });
+    socket.emit("answer", { room: data.room, answer: answer, token: _roomToken() });
     console.log("[WebRTC] Answer sent");
 };
 

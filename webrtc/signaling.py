@@ -27,54 +27,69 @@ def register_signaling_events(socketio):
             return None
         return room
 
+    def _authenticate(data):
+        """
+        Verify the room token sent with a socket event.
+        Returns room_id on success, emits an error and returns None on failure.
+        """
+        from utils.auth import verify_socket_token
+        room = validate_room(data)
+        if not room:
+            emit("auth-error", {"error": "Invalid room"})
+            return None
+
+        token = data.get("token")
+        if not token or not verify_socket_token(token, room):
+            emit("auth-error", {"error": "Invalid or missing room token"})
+            return None
+
+        return room
+
     @socketio.on("join-room")
     def on_join(data):
         from flask import request as flask_request
-        room = validate_room(data)
-        if not room: return
-        
-        sid = flask_request.sid
+        room = _authenticate(data)
+        if not room:
+            return
 
+        sid = flask_request.sid
         join_room(room)
         _add_to_room(room, sid)
 
         count = _count_in_room(room)
 
-        # Tell joining user if they're first (initiator) or second
-        emit("room-joined", {
-            "room": room,
-            "is_initiator": count == 1
-        })
-
-        # Notify other existing users
+        emit("room-joined", {"room": room, "is_initiator": count == 1})
         emit("user-joined", {"room": room}, to=room, include_self=False)
 
     @socketio.on("offer")
     def on_offer(data):
-        room = validate_room(data)
-        if not room: return
+        room = _authenticate(data)
+        if not room:
+            return
         emit("offer", data, to=room, include_self=False)
 
     @socketio.on("answer")
     def on_answer(data):
-        room = validate_room(data)
-        if not room: return
+        room = _authenticate(data)
+        if not room:
+            return
         emit("answer", data, to=room, include_self=False)
 
     @socketio.on("ice-candidate")
     def on_ice_candidate(data):
-        room = validate_room(data)
-        if not room: return
+        room = _authenticate(data)
+        if not room:
+            return
         emit("ice-candidate", data, to=room, include_self=False)
 
     @socketio.on("leave-room")
     def on_leave(data):
         from flask import request as flask_request
-        room = validate_room(data)
-        if not room: return
-        
-        sid = flask_request.sid
+        room = _authenticate(data)
+        if not room:
+            return
 
+        sid = flask_request.sid
         leave_room(room)
         _remove_from_room(room, sid)
         emit("user-left", {"room": room}, to=room)
@@ -83,7 +98,6 @@ def register_signaling_events(socketio):
     def on_disconnect():
         from flask import request as flask_request
         sid = flask_request.sid
-        # Remove from all rooms this SID was in
         for room_id in list(_rooms.keys()):
             if sid in _rooms.get(room_id, set()):
                 _remove_from_room(room_id, sid)

@@ -9,14 +9,19 @@ const socket = io({
 
 let _roomId = null;
 
+function _roomToken() {
+    if (!_roomId) return null;
+    return sessionStorage.getItem(`room_token_${_roomId}`) || null;
+}
+
 function joinRoom(roomId) {
     _roomId = roomId;
-    socket.emit("join-room", { room: roomId });
+    socket.emit("join-room", { room: roomId, token: _roomToken() });
 }
 
 function leaveRoom() {
     if (_roomId) {
-        socket.emit("leave-room", { room: _roomId });
+        socket.emit("leave-room", { room: _roomId, token: _roomToken() });
         _roomId = null;
     }
 }
@@ -26,7 +31,7 @@ function leaveRoom() {
 socket.on("connect", () => {
     console.log("[Socket] Connected:", socket.id);
     // Re-join room on reconnect
-    if (_roomId) socket.emit("join-room", { room: _roomId });
+    if (_roomId) socket.emit("join-room", { room: _roomId, token: _roomToken() });
 });
 
 socket.on("disconnect", () => {
@@ -73,6 +78,11 @@ socket.on("ice-candidate", (data) => {
 socket.on("connect_error", (err) => {
     console.error("[Socket] Connection error:", err.message);
     showStatus("Connection error. Retrying…", "error");
+});
+
+socket.on("auth-error", (data) => {
+    console.error("[Socket] Auth error:", data.error);
+    showStatus("Session expired. Please refresh the page.", "error");
 });
 
 function showStatus(msg, type = "info") {
