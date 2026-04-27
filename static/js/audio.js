@@ -46,8 +46,16 @@ async function transcribeRecordedAudio(audioBlob) {
         const ext = extensionFromMimeType(audioBlob.type);
         formData.append("audio", audioBlob, `answer.${ext}`);
 
+        // Attach room token as a header if available
+        const headers = {};
+        if (typeof getRoomToken === "function") {
+            const token = getRoomToken();
+            if (token) headers["X-Room-Token"] = token;
+        }
+
         const response = await fetch("/api/ai/transcribe", {
             method: "POST",
+            headers,
             body: formData
         });
 

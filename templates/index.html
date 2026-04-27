@@ -159,6 +159,8 @@ el.textContent = icon + msg;
                 const data = await res.json();
 
                 if (data.status === "created") {
+                    // Store the signed room token so the interview room can authenticate
+                    sessionStorage.setItem(`room_token_${data.room_id}`, data.room_token);
                     window.location.href = `/interview/${data.room_id}`;
                 } else {
                     throw new Error(data.error || "Failed to create interview");

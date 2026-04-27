@@ -8,6 +8,19 @@ let interviewTimer = null;
 let timeRemaining = 0;
 let roleValue = "Software Developer";
 
+// Room token — loaded once the page knows its roomId
+function getRoomToken() {
+    if (typeof roomId === "undefined") return null;
+    return sessionStorage.getItem(`room_token_${roomId}`) || null;
+}
+
+function authHeaders() {
+    const token = getRoomToken();
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["X-Room-Token"] = token;
+    return headers;
+}
+
 const MAX_QUESTIONS = 6;
 const DURATION_SECONDS = 600; // 10 minutes
 
@@ -76,11 +89,12 @@ async function fetchNextQuestion(answerText) {
     try {
         const response = await fetch("/api/ai/question", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify({
                 role: roleValue,
                 answer: answerText,
-                question_history: questionHistory
+                question_history: questionHistory,
+                room_token: getRoomToken()
             })
         });
 
@@ -180,11 +194,12 @@ async function endInterview() {
     try {
         const response = await fetch("/api/ai/report", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify({
                 role: roleValue,
                 qa_history: questionHistory,
-                room_id: typeof roomId !== "undefined" ? roomId : null
+                room_id: typeof roomId !== "undefined" ? roomId : null,
+                room_token: getRoomToken()
             })
         });
 
