@@ -110,6 +110,7 @@ el.textContent = icon + msg;
         async function createInterview() {
             const name = document.getElementById("candidateName").value.trim();
             const role = document.getElementById("role").value;
+            const duration = parseInt(document.getElementById("duration").value) || 10;
 
             if (!name) {
                 showStatus("Please enter your name to continue.", "warning");
@@ -153,7 +154,7 @@ el.textContent = icon + msg;
                 const res = await fetch("/api/interview/create", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ room_id: roomId, role, candidate_name: name })
+                    body: JSON.stringify({ room_id: roomId, role, candidate_name: name, duration })
                 });
 
                 const data = await res.json();
@@ -249,6 +250,21 @@ function toggleTheme() {
                         <option value="Cybersecurity Engineer">Cybersecurity Engineer</option>
                         <option value="Cloud Architect">Cloud Architect</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="duration">Interview Duration</label>
+                    <!-- Replace existing duration select -->
+<select class="form-input" id="duration">
+    <option value="5">5 Minutes</option>
+    <option value="10" selected>10 Minutes</option>
+    <option value="15">15 Minutes</option>
+    <option value="20">20 Minutes</option>
+    <option value="30">30 Minutes</option>
+    <option value="40">40 Minutes</option>
+    <option value="50">50 Minutes</option>
+    <option value="60">60 Minutes</option>
+</select>
                 </div>
 
                 <!-- Mic Test Section -->

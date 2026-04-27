@@ -5,11 +5,14 @@ let currentQuestion = "";
 let questionCount = 0;
 let interviewActive = false;
 let interviewTimer = null;
+let qTimer = null;
 let timeRemaining = 0;
+let qTimeRemaining = 0;
 let roleValue = "Software Developer";
+let interviewDurationMins = 10;
 
 const MAX_QUESTIONS = 6;
-const DURATION_SECONDS = 600; // 10 minutes
+const Q_DURATION = 120; // 2 minutes per question
 
 function sanitizeAiText(text) {
     if (!text) return "";
@@ -31,11 +34,15 @@ function initInterview() {
     const metaRole = document.getElementById("metaRole");
     if (metaRole) roleValue = metaRole.value || roleValue;
 
+    const metaDuration = document.getElementById("metaDuration");
+    if (metaDuration) interviewDurationMins = parseInt(metaDuration.value) || 10;
+
     // Set up button states
     const stopBtn = document.getElementById("stopBtn");
     if (stopBtn) stopBtn.disabled = true;
 
     updateProgress();
+    updateTimerDisplay(interviewDurationMins * 60);
 }
 
 // ── Start interview ───────────────────────────────────────
@@ -50,16 +57,23 @@ async function startInterview() {
         if (!ok) return;
     }
 
-    interviewActive = true;
-
     const startBtn = document.getElementById("startBtn");
-    if (startBtn) { startBtn.disabled = true; startBtn.textContent = "Interview in progress…"; }
+    if (startBtn) startBtn.disabled = true;
+
+    // Preparation Countdown
+    for (let i = 3; i > 0; i--) {
+        showStatus(`Interview starting in ${i}...`, "warning");
+        if (startBtn) startBtn.textContent = `Starting in ${i}...`;
+        await new Promise(r => setTimeout(r, 1000));
+    }
+
+    interviewActive = true;
+    if (startBtn) startBtn.textContent = "Interview in progress…";
 
     showStatus("AI Interviewer is preparing your first question…", "info");
     setQuestionStatus("thinking");
 
     startCountdownTimer();
-
     await fetchNextQuestion(null);
 }
 
@@ -107,6 +121,9 @@ async function fetchNextQuestion(answerText) {
             aiVoice.src = data.audio;
             aiVoice.onended = () => {
                 setQuestionStatus("waiting");
+                // Start Question Timer
+                startQuestionTimer();
+                
                 // Auto-enable record button when AI finishes speaking
                 const recBtn = document.getElementById("recordBtn");
                 if (recBtn) recBtn.disabled = false;
@@ -120,9 +137,11 @@ async function fetchNextQuestion(answerText) {
             aiVoice.play().catch(e => {
                 console.warn("[Interview] Audio play failed:", e);
                 setQuestionStatus("waiting");
+                startQuestionTimer();
             });
         } else {
             setQuestionStatus("waiting");
+            startQuestionTimer();
         }
 
     } catch (err) {
@@ -136,6 +155,9 @@ async function fetchNextQuestion(answerText) {
 
 async function sendAnswer(answerText) {
     if (!interviewActive) return;
+
+    // Stop Question Timer
+    stopQuestionTimer();
 
     // Store answer in history
     if (questionHistory.length > 0) {
@@ -166,6 +188,7 @@ async function sendAnswer(answerText) {
 async function endInterview() {
     interviewActive = false;
     clearInterval(interviewTimer);
+    stopQuestionTimer();
 
     showStatus("Interview complete! Generating your report…", "info");
     setQuestionStatus("done");
@@ -227,7 +250,7 @@ function displayReport(reportText) {
 // ── Timer ─────────────────────────────────────────────────
 
 function startCountdownTimer() {
-    timeRemaining = DURATION_SECONDS;
+    timeRemaining = interviewDurationMins * 60;
     updateTimerDisplay();
 
     interviewTimer = setInterval(() => {
@@ -241,15 +264,80 @@ function startCountdownTimer() {
     }, 1000);
 }
 
-function updateTimerDisplay() {
-    const mins = Math.floor(timeRemaining / 60);
-    const secs = timeRemaining % 60;
+function updateTimerDisplay(forceVal) {
+    const val = forceVal !== undefined ? forceVal : timeRemaining;
+    const mins = Math.floor(val / 60);
+    const secs = val % 60;
     const display = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     const timerEl = document.getElementById("timer");
     if (timerEl) {
         timerEl.textContent = display;
-        if (timeRemaining <= 60) timerEl.classList.add("timer-urgent");
+        if (val <= 60) timerEl.classList.add("timer-urgent");
+        else timerEl.classList.remove("timer-urgent");
     }
+}
+
+// ── Question Timer ────────────────────────────────────────
+
+function startQuestionTimer() {
+    stopQuestionTimer(); // Clear any existing
+    
+    qTimeRemaining = Q_DURATION;
+    const ring = document.getElementById("qTimerRing");
+    if (ring) ring.style.display = "flex";
+    
+    updateQuestionTimerUI();
+
+    qTimer = setInterval(() => {
+        qTimeRemaining--;
+        updateQuestionTimerUI();
+
+        if (qTimeRemaining <= 0) {
+            stopQuestionTimer();
+            handleQuestionTimeout();
+        }
+    }, 1000);
+}
+
+function stopQuestionTimer() {
+    if (qTimer) clearInterval(qTimer);
+    qTimer = null;
+    const ring = document.getElementById("qTimerRing");
+    if (ring) ring.style.display = "none";
+}
+
+function updateQuestionTimerUI() {
+    const textEl = document.getElementById("qTimerText");
+    const circleEl = document.getElementById("qTimerCircle");
+    const ringEl = document.getElementById("qTimerRing");
+
+    if (textEl) textEl.textContent = qTimeRemaining;
+    
+    if (circleEl) {
+        const offset = 113 - (113 * qTimeRemaining) / Q_DURATION;
+        circleEl.style.strokeDashoffset = offset;
+    }
+
+    if (ringEl) {
+        if (qTimeRemaining <= 30) ringEl.classList.add("q-timer-urgent");
+        else ringEl.classList.remove("q-timer-urgent");
+    }
+}
+
+async function handleQuestionTimeout() {
+    showStatus("Time's up! Submitting your current answer...", "warning");
+    
+    // If recording, stop it. This will trigger sendAnswer via audio.js logic or we call it here.
+    if (typeof stopRecording === "function") {
+        const stopBtn = document.getElementById("stopBtn");
+        if (stopBtn && !stopBtn.disabled) {
+            stopRecording();
+            return;
+        }
+    }
+    
+    // If not recording (maybe they never started), just send empty/default
+    await sendAnswer("(No verbal answer provided - timed out)");
 }
 
 // ── Progress ──────────────────────────────────────────────

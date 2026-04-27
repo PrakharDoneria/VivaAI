@@ -554,6 +554,36 @@ select.form-input {
     50% { opacity: 0.7; }
 }
 
+/* ── Question Timer Ring ─────────────────────────────── */
+.q-timer-ring {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: none; /* Hidden by default, shown when question starts */
+    align-items: center;
+    justify-content: center;
+}
+
+.q-timer-ring svg {
+    position: absolute;
+    inset: 0;
+}
+
+#qTimerText {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    z-index: 1;
+}
+
+.q-timer-urgent #qTimerCircle {
+    stroke: var(--danger) !important;
+}
+
+.q-timer-urgent #qTimerText {
+    color: var(--danger);
+}
+
 /* ── Transcript ──────────────────────────────────────── */
 .transcript-box {
     background: var(--bg-base);
