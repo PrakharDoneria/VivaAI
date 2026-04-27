@@ -18,8 +18,8 @@ class Config:
     HOST = os.environ.get("HOST", "0.0.0.0")
     PORT = int(os.environ.get("PORT", 5000))
 
-    INTERVIEW_DURATION_MINUTES = int(os.environ.get("INTERVIEW_DURATION_MINUTES", 10))
-    MAX_QUESTIONS = int(os.environ.get("MAX_QUESTIONS", 6))
+    INTERVIEW_DURATION_MINUTES = int(os.environ.get("INTERVIEW_DURATION_MINUTES") or 10)
+    MAX_QUESTIONS = int(os.environ.get("MAX_QUESTIONS") or 6)
 
     AUDIO_FOLDER = "static/audio/questions"
     ANSWERS_FOLDER = "static/audio/answers"
