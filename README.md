@@ -1,80 +1,71 @@
-# VivaAI
+# 🎙️ VivaAI: AI Interview Platform
 
-VivaAI is an AI-powered interview platform for real-time candidate conversations and automated assessment. It combines WebRTC and Socket.IO for low-latency interview sessions and uses AI services for question generation, transcription, and final reporting.
+VivaAI is a next-generation AI-powered interview platform designed to streamline the hiring process through real-time communication and intelligent assessment. Built with cutting-edge technologies, VivaAI provides a seamless, professional interviewing experience for both recruiters and candidates.
 
-## Tech Stack
-- Python 3.11+
-- Flask 3.x
-- Flask-SocketIO 5.x
-- Pydantic 2.x
-- SQLite 3
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/prakhardoneria/)
+[![Instagram](https://img.shields.io/badge/Instagram-Follow-purple?style=flat-square&logo=instagram)](https://instagram.com/prakhardoneria)
 
-## Prerequisites
-- Python 3.11+
-- Node.js 20 (for frontend tooling if added later; pinned via `.nvmrc`)
-- `pip`
+---
 
-## Local Setup
-1. Clone repo and enter it.
-2. Create virtual environment.
-3. Install dependencies.
-4. Copy `.env.example` to `.env` and set secrets.
-5. Run app.
+## 🚀 Features
 
+- **Real-time Video/Audio**: Powered by WebRTC for low-latency communication.
+- **AI-Driven Assessment**: Integrated with SarvamAI for intelligent feedback and question generation.
+- **Seamless Signaling**: SocketIO integration for instantaneous state synchronization.
+- **Premium UI**: Modern, responsive, and intuitive design for a superior user experience.
+- **Automated Workflow**: From scheduling to assessment reports.
+
+## 🛠️ Tech Stack
+
+- **Backend**: Flask (Python)
+- **Real-time**: SocketIO, WebRTC
+- **AI Integration**: SarvamAI
+- **Database**: SQLite (via SQLAlchemy)
+- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
+
+## 📦 Installation & Setup
+
+### 1. Clone the repository
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-make install
-cp .env.example .env
-make dev
+git clone https://github.com/prakhardoneria/VivaAI.git
+cd VivaAI
 ```
 
-## One-command Dev Run
+### 2. Create a Virtual Environment
 ```bash
-make dev
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-## Common Tasks
+### 3. Install Dependencies
 ```bash
-make install
-make dev
-make test
-make lint
+pip install -r requirements.txt
 ```
 
-## Environment Variables
-| Name | Required | Default | Description |
-|---|---|---|---|
-| SECRET_KEY | Yes | - | Flask secret key |
-| ENVIRONMENT | No | development | Runtime mode: development/staging/production |
-| DEBUG | No | True | Flask debug mode |
-| HOST | No | 0.0.0.0 | Server bind host |
-| PORT | No | 5000 | Server port |
-| DATABASE_PATH | No | database/vivaai.db | SQLite file path |
-| AUDIO_FOLDER | No | static/audio/questions | Generated question audio path |
-| ANSWERS_FOLDER | No | static/audio/answers | Candidate answer audio path |
-| STUN_SERVER | No | stun:stun.l.google.com:19302 | WebRTC STUN server |
-| CORS_ALLOWED_ORIGINS | No | * | Socket CORS allowed origins |
-| SARVAM_API_KEY | No | empty | AI provider key |
-| AI_PROVIDER | No | sarvam | AI provider selection |
-| SARVAM_CHAT_MODEL | No | sarvam-m | Chat model |
-| SARVAM_STT_MODEL | No | saarika:v2.5 | STT model |
-| SARVAM_STT_LANGUAGE | No | en-IN | STT language |
-| SARVAM_STT_CODEC | No | webm | STT input codec |
-| AI_TEMPERATURE | No | 0.7 | Generation temperature |
-| INTERVIEW_DURATION_MINUTES | No | 10 | Interview timer |
-| MAX_QUESTIONS | No | 6 | Max generated questions |
-| RATE_LIMIT_WINDOW_SECONDS | No | 60 | Window size for API throttling |
-| RATE_LIMIT_AUTH_PER_WINDOW | No | 10 | Interview/create rate limit |
-| RATE_LIMIT_AI_PER_WINDOW | No | 30 | AI endpoint rate limit |
-
-## Running Tests
-```bash
-make test
+### 4. Configuration
+Create a `.env` file in the root directory and add your environment variables (refer to `.env.example`):
+```env
+SARVAM_API_KEY=your_api_key_here
+FLASK_SECRET_KEY=your_secret_key_here
 ```
 
-## Contributing
-- Branch from `main` using `feature/<name>` or `fix/<name>`.
-- Keep commits atomic and scoped.
-- Open PR with summary, tests, and rollback notes.
-- Do not break API routes; add compatible aliases if needed.
+### 5. Run the Application
+```bash
+python app.py
+```
+The application will be available at `http://localhost:5000`.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 Connect with Me
+
+- **Prakhar Doneria**
+- LinkedIn: [in/prakhardoneria](https://www.linkedin.com/in/prakhar-doneria/)
+- Instagram: [@prakhardoneria](https://instagram.com/prakhardoneria)
+`
