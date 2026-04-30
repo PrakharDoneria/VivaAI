@@ -39,9 +39,10 @@ def create():
     room_id = data.room_id or str(uuid.uuid4())[:8]
     role = data.role
     candidate_name = data.candidate_name
+    duration = data.duration
 
     try:
-        create_interview(room_id, role, candidate_name)
+        create_interview(room_id, role, candidate_name, duration)
         return jsonify({"status": "created", "room_id": room_id})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

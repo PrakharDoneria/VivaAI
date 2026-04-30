@@ -31,6 +31,7 @@ class CreateInterviewRequest(BaseModel):
     room_id: Optional[str] = Field(default=None, min_length=1, max_length=50)
     role: str = Field(default="Software Developer", min_length=2, max_length=100)
     candidate_name: str = Field(default="Candidate", min_length=1, max_length=100)
+    duration: int = Field(default=10, ge=1, le=60)
 
 class SaveAnswersRequest(BaseModel):
     answers: str = Field(..., min_length=1, max_length=10000)
