@@ -99,3 +99,36 @@ def get_interview(room_id):
     conn.close()
 
     return interview
+
+
+def get_all_interviews():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT id, room_id, candidate_name, role, duration, status, created_at, ended_at FROM interviews ORDER BY created_at DESC"
+    )
+
+    interviews = [dict(row) for row in cur.fetchall()]
+    conn.close()
+
+    return interviews
+
+
+def get_interviews_by_ids(room_ids):
+    if not room_ids:
+        return []
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    placeholders = ",".join("?" for _ in room_ids)
+    cur.execute(
+        f"SELECT * FROM interviews WHERE room_id IN ({placeholders})",
+        room_ids
+    )
+
+    interviews = [dict(row) for row in cur.fetchall()]
+    conn.close()
+
+    return interviews
