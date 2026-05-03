@@ -31,32 +31,38 @@ def _parse_report_scores(report_text):
     scores = {}
 
     # Technical Knowledge Score
-    val = _extract_score(report_text, r'technical\s+knowledge\s+score[:\s]*(\d+(?:\.\d+)?)\s*/?\s*(?:out\s+of\s+)?10')
+    val = _extract_score(report_text, r'technical[\s-]*knowledge(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
     if val is None:
-        val = _extract_score(report_text, r'technical\s+knowledge[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
+        val = _extract_score(report_text, r'technical[\s-]*knowledge[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
     if val is not None:
         scores['technical'] = min(val, 10)
 
     # Communication Score
-    val = _extract_score(report_text, r'communication\s+score[:\s]*(\d+(?:\.\d+)?)\s*/?\s*(?:out\s+of\s+)?10')
+    val = _extract_score(report_text, r'communication(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
     if val is None:
         val = _extract_score(report_text, r'communication[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
     if val is not None:
         scores['communication'] = min(val, 10)
 
     # Problem Solving Score
-    val = _extract_score(report_text, r'problem\s+solving\s+score[:\s]*(\d+(?:\.\d+)?)\s*/?\s*(?:out\s+of\s+)?10')
+    val = _extract_score(report_text, r'problem[\s-]*solving(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
     if val is None:
-        val = _extract_score(report_text, r'problem\s+solving[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
+        val = _extract_score(report_text, r'problem[\s-]*solving[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
     if val is not None:
         scores['problem_solving'] = min(val, 10)
 
     # Overall Score
-    val = _extract_score(report_text, r'overall\s+score[:\s]*(\d+(?:\.\d+)?)\s*/?\s*(?:out\s+of\s+)?10')
+    val = _extract_score(report_text, r'overall(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
     if val is None:
         val = _extract_score(report_text, r'overall[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
+    
     if val is not None:
         scores['overall'] = min(val, 10)
+    else:
+        # Fallback: average of available scores
+        available = [v for k, v in scores.items() if k in ['technical', 'communication', 'problem_solving']]
+        if available:
+            scores['overall'] = round(sum(available) / len(available), 1)
 
     # Confidence — derive from communication and problem solving if available
     if 'communication' in scores and 'problem_solving' in scores:
@@ -79,7 +85,7 @@ def _extract_improvements(report_text):
         return []
 
     improvements = []
-    # Look for "Areas for Improvement" section
+    # 1. Look for "Areas for Improvement" section
     section_match = re.search(
         r'areas?\s+for\s+improvement[:\s]*\n?((?:[-•*]\s*.+\n?)+)',
         report_text, re.IGNORECASE
@@ -88,8 +94,32 @@ def _extract_improvements(report_text):
         lines = section_match.group(1).strip().split('\n')
         for line in lines:
             clean = re.sub(r'^[-•*\d.)\s]+', '', line).strip()
-            if clean:
+            if clean and len(clean) > 5:
                 improvements.append(clean)
+
+    # 2. If no bullet points found, extract feedback from Justification sections
+    if not improvements:
+        # Look for "Justification" blocks and find critical feedback sentences
+        justifications = re.findall(r'justification[:\s]*(.*?)(?=\n\d\.|\n\*\*|\Z)', report_text, re.IGNORECASE | re.DOTALL)
+        for just in justifications:
+            # Split into sentences
+            sentences = re.split(r'(?<=[.!?])\s+', just.strip())
+            for sent in sentences:
+                sent = sent.strip().strip('*')
+                # Look for feedback-like keywords
+                if any(kw in sent.lower() for kw in ['lacks', 'fail', 'struggle', 'should', 'need', 'improve', 'missing', 'without', 'vague', 'disorganized']):
+                    if len(sent) > 15 and len(sent) < 150:
+                        improvements.append(sent)
+    
+    # 3. Fallback: catch any lines starting with bullet points
+    if not improvements:
+        for line in report_text.split('\n'):
+            if re.match(r'^\s*[-•*]\s*', line):
+                clean = re.sub(r'^[-•*\d.)\s]+', '', line).strip()
+                if clean and len(clean) > 5:
+                    improvements.append(clean)
+
+    return improvements[:6]
 
     return improvements
 
