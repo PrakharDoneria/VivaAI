@@ -22,6 +22,11 @@
             const eased = 1 - Math.pow(1 - progress, 3);
             const current = start + (target - start) * eased;
 
+            if (target === null || target === undefined) {
+                element.textContent = "N/A" + suffix;
+                return;
+            }
+
             if (Number.isInteger(target)) {
                 element.textContent = Math.round(current) + suffix;
             } else {
@@ -286,13 +291,16 @@
 
         let html = "";
         skills.forEach((skill) => {
-            const score = skillAverages[skill.key] || 0;
-            const percent = (score / 10) * 100;
+            const score = skillAverages[skill.key];
+            const hasScore = score !== null && score !== undefined && score !== 0;
+            const displayScore = hasScore ? score.toFixed(1) : "N/A";
+            const percent = hasScore ? (score / 10) * 100 : 0;
+            
             html += `
                 <div class="skill-item">
                     <div class="skill-header">
                         <span class="skill-name">${skill.icon} ${skill.label}</span>
-                        <span class="skill-score">${score}/10</span>
+                        <span class="skill-score">${displayScore}${hasScore ? "/10" : ""}</span>
                     </div>
                     <div class="skill-bar-track">
                         <div class="skill-bar-fill ${skill.key}" data-width="${percent}" style="width: 0%"></div>

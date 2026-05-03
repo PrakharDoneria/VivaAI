@@ -14,7 +14,8 @@ def _extract_score(text, pattern):
     """Extract a numeric score from report text using a regex pattern."""
     if not text:
         return None
-    match = re.search(pattern, text, re.IGNORECASE)
+    # Use DOTALL to allow .* to match across newlines if needed
+    match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
     if match:
         try:
             return float(match.group(1))
@@ -31,25 +32,43 @@ def _parse_report_scores(report_text):
     scores = {}
 
     # Technical Knowledge Score
-    val = _extract_score(report_text, r'technical[\s-]*knowledge(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
-    if val is None:
-        val = _extract_score(report_text, r'technical[\s-]*knowledge[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
-    if val is not None:
-        scores['technical'] = min(val, 10)
+    patterns = [
+        r'technical[\s-]*knowledge(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
+        r'technical[\s-]*knowledge[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'technical[\s-]*knowledge.*?\*\*[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'1\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'  # Fallback to item 1
+    ]
+    for p in patterns:
+        val = _extract_score(report_text, p)
+        if val is not None:
+            scores['technical'] = min(val, 10)
+            break
 
     # Communication Score
-    val = _extract_score(report_text, r'communication(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
-    if val is None:
-        val = _extract_score(report_text, r'communication[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
-    if val is not None:
-        scores['communication'] = min(val, 10)
+    patterns = [
+        r'communication(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
+        r'communication[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'communication.*?\*\*[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'2\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'  # Fallback to item 2
+    ]
+    for p in patterns:
+        val = _extract_score(report_text, p)
+        if val is not None:
+            scores['communication'] = min(val, 10)
+            break
 
     # Problem Solving Score
-    val = _extract_score(report_text, r'problem[\s-]*solving(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
-    if val is None:
-        val = _extract_score(report_text, r'problem[\s-]*solving[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
-    if val is not None:
-        scores['problem_solving'] = min(val, 10)
+    patterns = [
+        r'problem[\s-]*solving(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
+        r'problem[\s-]*solving[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'problem[\s-]*solving.*?\*\*[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'3\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'  # Fallback to item 3
+    ]
+    for p in patterns:
+        val = _extract_score(report_text, p)
+        if val is not None:
+            scores['problem_solving'] = min(val, 10)
+            break
 
     # Overall Score
     val = _extract_score(report_text, r'overall(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
@@ -63,6 +82,8 @@ def _parse_report_scores(report_text):
         available = [v for k, v in scores.items() if k in ['technical', 'communication', 'problem_solving']]
         if available:
             scores['overall'] = round(sum(available) / len(available), 1)
+        else:
+            scores['overall'] = None
 
     # Confidence — derive from communication and problem solving if available
     if 'communication' in scores and 'problem_solving' in scores:
@@ -199,13 +220,13 @@ def get_analytics_data():
         })
 
     # --- Compute aggregate metrics ---
-    avg_score = round(sum(all_scores) / len(all_scores), 1) if all_scores else 0
-    highest_score = max(all_scores) if all_scores else 0
-    lowest_score = min(all_scores) if all_scores else 0
+    avg_score = round(sum(all_scores) / len(all_scores), 1) if all_scores else None
+    highest_score = max(all_scores) if all_scores else None
+    lowest_score = min(all_scores) if all_scores else None
 
     skill_averages = {}
     for skill, values in skill_totals.items():
-        skill_averages[skill] = round(sum(values) / len(values), 1) if values else 0
+        skill_averages[skill] = round(sum(values) / len(values), 1) if values else None
 
     # Progress data (chronological for chart)
     progress_data = []
