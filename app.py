@@ -10,6 +10,7 @@ from config import Config
 from models.interview import init_db
 from routes.ai_routes import ai_bp
 from routes.interview_routes import interview_bp
+from routes.analytics_routes import analytics_bp
 from webrtc.signaling import register_signaling_events
 
 app = Flask(__name__)
@@ -27,6 +28,7 @@ socketio = SocketIO(
 # Register blueprints
 app.register_blueprint(ai_bp)
 app.register_blueprint(interview_bp)
+app.register_blueprint(analytics_bp)
 
 # Register WebRTC signaling socket events
 register_signaling_events(socketio)
