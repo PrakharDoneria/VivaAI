@@ -27,3 +27,6 @@ class Config:
     DATABASE_PATH = "database/vivaai.db"
 
     STUN_SERVER = "stun:stun.l.google.com:19302"
+    
+    # API Key for external service authentication
+    API_SECRET_KEY = os.environ.get("API_SECRET_KEY", os.environ.get("SECRET_KEY", "vivaai-api-secret-key"))

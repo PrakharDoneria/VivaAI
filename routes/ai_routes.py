@@ -7,11 +7,15 @@ from models.interview import save_report
 from utils.sanitization import sanitize_model_output
 from utils.validation import QuestionRequest, ReportRequest
 from pydantic import ValidationError
+from middleware.auth import require_api_key
+from middleware.rate_limiter import limiter, AI_RATE_LIMIT
 
 ai_bp = Blueprint("ai", __name__)
 
 
 @ai_bp.route("/api/ai/question", methods=["POST"])
+@require_api_key
+@limiter.limit(AI_RATE_LIMIT)
 def question():
     try:
         data = QuestionRequest(**request.get_json())
@@ -35,6 +39,8 @@ def question():
 
 
 @ai_bp.route("/api/ai/report", methods=["POST"])
+@require_api_key
+@limiter.limit(AI_RATE_LIMIT)
 def report():
     try:
         data = ReportRequest(**request.get_json())
@@ -58,6 +64,8 @@ def report():
 
 
 @ai_bp.route("/api/ai/transcribe", methods=["POST"])
+@require_api_key
+@limiter.limit(AI_RATE_LIMIT)
 def transcribe():
     file = request.files.get("audio")
     if not file:

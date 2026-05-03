@@ -11,9 +11,13 @@ from models.interview import init_db
 from routes.ai_routes import ai_bp
 from routes.interview_routes import interview_bp
 from webrtc.signaling import register_signaling_events
+from middleware.rate_limiter import limiter  # ADD THIS
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Initialize rate limiter
+limiter.init_app(app)  # ADD THIS
 
 socketio = SocketIO(
     app,
@@ -62,4 +66,4 @@ if __name__ == "__main__":
         port=Config.PORT,
         debug=Config.DEBUG,
         allow_unsafe_werkzeug=True
-    )
+    )
