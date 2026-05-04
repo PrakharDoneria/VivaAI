@@ -4,195 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>
-        // Apply saved theme on load
-        (function() {
-            const saved = localStorage.getItem("vivaai-theme") || "dark";
-            document.documentElement.setAttribute("data-theme", saved);
-            const btn = document.getElementById("themeToggle");
-            if (btn) btn.textContent = saved === "light" ? "☀️" : "🌙";
-        })();
-        function showStatus(msg, type = "info") {
-            const el = document.getElementById("statusMsg");
-            let icon = "";
-
-if (type === "success") icon = "✅ ";
-else if (type === "error") icon = "❌ ";
-else if (type === "warning") icon = "⚠️ ";
-else icon = "ℹ️ ";
-
-el.textContent = icon + msg;
-            el.className = `status-msg status-${type}`;
-            el.style.display = "block";
-        }
-
-        let micStream = null;
-        let audioContext = null;
-        let analyser = null;
-        let animationId = null;
-
-        async function testMicrophone() {
-            const btn = document.getElementById("testMicBtn");
-            const controls = document.getElementById("micMeterControls");
-
-            try {
-                btn.textContent = "Requesting Access...";
-                btn.disabled = true;
-
-                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-
-                const source = audioContext.createMediaStreamSource(micStream);
-                source.connect(analyser);
-
-                const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                const volumeBar = document.getElementById("micVolumeBar");
-
-                btn.style.display = "none";
-                controls.style.display = "block";
-
-                function updateMeter() {
-                    analyser.getByteFrequencyData(dataArray);
-                    let sum = 0;
-                    for (let i = 0; i < dataArray.length; i++) {
-                        sum += dataArray[i];
-                    }
-                    const average = sum / dataArray.length;
-
-                    // Map frequency amplitude average to 0-100% width
-                    const percent = Math.min(100, (average / 100) * 100);
-                    volumeBar.style.width = percent + "%";
-
-                    // Change color based on volume (pitch proxy)
-                    if (percent > 80) volumeBar.style.background = "#ef4444"; // red (too loud)
-                    else if (percent > 50) volumeBar.style.background = "#eab308"; // yellow
-                    else volumeBar.style.background = "#22c55e"; // green
-
-                    animationId = requestAnimationFrame(updateMeter);
-                }
-
-                updateMeter();
-                showStatus("Microphone access granted. Speak to test your audio level.", "success");
-            } catch (err) {
-                console.error(err);
-                btn.textContent = "🎤 Test Microphone";
-                btn.disabled = false;
-                showStatus("Microphone access denied. Please allow permissions.", "error");
-            }
-        }
-
-        function stopMicTest() {
-            if (animationId) cancelAnimationFrame(animationId);
-            if (micStream) {
-                micStream.getTracks().forEach(track => track.stop());
-                micStream = null;
-            }
-            if (audioContext && audioContext.state !== "closed") {
-                audioContext.close();
-            }
-
-            const btn = document.getElementById("testMicBtn");
-            const controls = document.getElementById("micMeterControls");
-            if (btn) {
-                btn.style.display = "inline-flex";
-                btn.textContent = "🎤 Test Microphone";
-                btn.disabled = false;
-            }
-            if (controls) controls.style.display = "none";
-
-            const el = document.getElementById("statusMsg");
-            if (el && el.classList.contains("status-success")) el.style.display = "none";
-        }
-
-        async function createInterview() {
-            const name = document.getElementById("candidateName").value.trim();
-            const role = document.getElementById("role").value;
-            const duration = parseInt(document.getElementById("duration").value) || 10;
-
-            if (!name) {
-                showStatus("Please enter your name to continue.", "warning");
-                document.getElementById("candidateName").focus();
-                return;
-            }
-
-            const btn = document.getElementById("startBtn");
-            btn.disabled = true;
-            btn.innerHTML = "⏳ Checking permissions...";
-
-            // Pre-flight check for camera & mic permissions
-            try {
-                if (typeof stopMicTest === "function") stopMicTest(); // Ensure our test mic is closed
-
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error("Your browser does not support camera/microphone access in this context (try using localhost instead of your IP).");
-                }
-                const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                // Permission granted, close tracks immediately
-                testStream.getTracks().forEach(track => track.stop());
-            } catch (err) {
-                let msg = "Camera/microphone access denied. Please click the camera icon in your address bar to allow permissions, then try again.";
-                if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-                    msg = "No camera or microphone found. Please connect your devices and try again.";
-                } else if (err.message && err.message.includes("context")) {
-                    msg = err.message;
-                }
-                showStatus(msg, "error");
-                btn.disabled = false;
-                btn.textContent = "🚀 Start Interview Session";
-                return;
-            }
-
-            btn.innerHTML = "🚀 Creating room...";
-            showStatus("Permissions granted. Setting up your interview room…", "info");
-
-            const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-            try {
-                const res = await fetch("/api/interview/create", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ room_id: roomId, role, candidate_name: name, duration })
-                });
-
-                const data = await res.json();
-
-                if (data.status === "created") {
-                    window.location.href = `/interview/${data.room_id}`;
-                } else {
-                    throw new Error(data.error || "Failed to create interview");
-                }
-            } catch (err) {
-                showStatus("Error: " + err.message, "error");
-                btn.disabled = false;
-                btn.textContent = "🚀 Start Interview Session";
-            }
-        }
-
-       document.getElementById("candidateName").addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-        createInterview();
-    }
-});
-window.onload = () => {
-    document.getElementById("candidateName").focus();
-};
-
-// Theme toggle
-function toggleTheme() {
-    const html = document.documentElement;
-    const btn = document.getElementById("themeToggle");
-    const isDark = html.getAttribute("data-theme") !== "light";
-    html.setAttribute("data-theme", isDark ? "light" : "dark");
-    btn.textContent = isDark ? "☀️" : "🌙";
-    localStorage.setItem("vivaai-theme", isDark ? "light" : "dark");
-}
-
-    </script>
-    <meta name="description"
-    content="VivaAI — AI-powered real-time video call interview platform. Practice technical and HR interviews with an intelligent AI interviewer.">
+    <meta name="description" content="VivaAI — AI-powered real-time video call interview platform. Practice technical and HR interviews with an intelligent AI interviewer.">
     <title>VivaAI — AI Interview Platform</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -205,9 +17,11 @@ function toggleTheme() {
             <span class="logo-text">VivaAI</span>
         </a>
         <div style="display:flex; align-items:center; gap:10px;">
-    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
-    <span class="header-badge">Beta</span>
-</div>
+            <span id="userNameDisplay" style="color: var(--text); font-size: 14px;"></span>
+            <button id="logoutBtn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px;">Logout</button>
+            <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+            <span class="header-badge">Beta</span>
+        </div>
     </header>
 
     <main>
@@ -254,26 +68,25 @@ function toggleTheme() {
 
                 <div class="form-group">
                     <label class="form-label" for="duration">Interview Duration</label>
-                    <!-- Replace existing duration select -->
-<select class="form-input" id="duration">
-    <option value="5">5 Minutes</option>
-    <option value="10" selected>10 Minutes</option>
-    <option value="15">15 Minutes</option>
-    <option value="20">20 Minutes</option>
-    <option value="30">30 Minutes</option>
-    <option value="40">40 Minutes</option>
-    <option value="50">50 Minutes</option>
-    <option value="60">60 Minutes</option>
-</select>
+                    <select class="form-input" id="duration">
+                        <option value="5">5 Minutes</option>
+                        <option value="10" selected>10 Minutes</option>
+                        <option value="15">15 Minutes</option>
+                        <option value="20">20 Minutes</option>
+                        <option value="30">30 Minutes</option>
+                        <option value="40">40 Minutes</option>
+                        <option value="50">50 Minutes</option>
+                        <option value="60">60 Minutes</option>
+                    </select>
                 </div>
 
                 <!-- Mic Test Section -->
                 <div class="form-group mic-test-group"
                     style="text-align: center; border: 1px dashed rgba(255,255,255,0.2); padding: 16px; border-radius: 8px;">
                     <label class="form-label" style="text-align: left;">Audio Test (Optional)</label>
-                    <button class="btn btn-ghost" id="testMicBtn" onclick="testMicrophone()" type="button"
+                    <button class="btn btn-ghost" id="testMicBtn" type="button"
                         style="width: 100%; border: 1px solid var(--border-color);">
-                        🎤 Test Microphone
+                        Test Microphone
                     </button>
                     <div id="micMeterControls" style="display: none;">
                         <span
@@ -285,13 +98,13 @@ function toggleTheme() {
                                 style="height: 100%; width: 0%; background: var(--success); transition: width 0.05s ease;">
                             </div>
                         </div>
-                        <button class="btn btn-ghost btn-sm" onclick="stopMicTest()" type="button"
+                        <button class="btn btn-ghost btn-sm" id="stopMicTestBtn" type="button"
                             style="color: var(--danger);">Stop Test</button>
                     </div>
                 </div>
 
-                <button class="btn btn-primary btn-lg" id="startBtn" onclick="createInterview()" style="width: 100%;">
-                    🚀 Start Interview Session
+                <button class="btn btn-primary btn-lg" id="startBtn" style="width: 100%;">
+                    Start Interview Session
                 </button>
 
                 <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 14px;">
@@ -319,8 +132,189 @@ function toggleTheme() {
             </div>
         </section>
     </main>
-    
+
+    <script>
+        // Theme
+        (function() {
+            const saved = localStorage.getItem("vivaai-theme") || "dark";
+            document.documentElement.setAttribute("data-theme", saved);
+            const btn = document.getElementById("themeToggle");
+            if (btn) btn.textContent = saved === "light" ? "☀️" : "🌙";
+        })();
+
+        // Auth check - runs once
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token || !user.name) {
+            window.location.href = '/login';
+        }
+
+        // Display user name
+        const userNameSpan = document.getElementById('userNameDisplay');
+        if (userNameSpan && user.name) {
+            userNameSpan.textContent = user.name;
+        }
+
+        // Logout
+        document.getElementById('logoutBtn')?.addEventListener('click', function() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        });
+
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById("themeToggle");
+            const isDark = html.getAttribute("data-theme") !== "light";
+            html.setAttribute("data-theme", isDark ? "light" : "dark");
+            btn.textContent = isDark ? "☀️" : "🌙";
+            localStorage.setItem("vivaai-theme", isDark ? "light" : "dark");
+        }
+
+        document.getElementById("themeToggle")?.addEventListener("click", toggleTheme);
+
+        // Status message
+        function showStatus(msg, type) {
+            const el = document.getElementById("statusMsg");
+            if (!el) return;
+            el.textContent = msg;
+            el.className = "status-msg status-" + (type || "info");
+            el.style.display = "block";
+            setTimeout(function() {
+                if (el.style.display === "block") el.style.display = "none";
+            }, 5000);
+        }
+
+        // Microphone test
+        let micStream = null;
+        let audioContext = null;
+        let analyser = null;
+        let animationId = null;
+
+        document.getElementById("testMicBtn")?.addEventListener("click", async function() {
+            const btn = this;
+            const controls = document.getElementById("micMeterControls");
+
+            try {
+                btn.disabled = true;
+                btn.textContent = "Requesting Access...";
+
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                const source = audioContext.createMediaStreamSource(micStream);
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                const volumeBar = document.getElementById("micVolumeBar");
+
+                btn.style.display = "none";
+                controls.style.display = "block";
+
+                function updateMeter() {
+                    if (!analyser) return;
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                    const percent = Math.min(100, (sum / dataArray.length / 100) * 100);
+                    volumeBar.style.width = percent + "%";
+                    if (percent > 80) volumeBar.style.background = "#ef4444";
+                    else if (percent > 50) volumeBar.style.background = "#eab308";
+                    else volumeBar.style.background = "#22c55e";
+                    animationId = requestAnimationFrame(updateMeter);
+                }
+                updateMeter();
+                showStatus("Microphone working. Speak to test your audio level.", "success");
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = "Test Microphone";
+                showStatus("Microphone access denied. Please allow permissions.", "error");
+            }
+        });
+
+        document.getElementById("stopMicTestBtn")?.addEventListener("click", function() {
+            if (animationId) cancelAnimationFrame(animationId);
+            if (micStream) {
+                micStream.getTracks().forEach(function(track) { track.stop(); });
+                micStream = null;
+            }
+            if (audioContext && audioContext.state !== "closed") audioContext.close();
+            audioContext = null;
+            analyser = null;
+            const btn = document.getElementById("testMicBtn");
+            const controls = document.getElementById("micMeterControls");
+            if (btn) {
+                btn.style.display = "inline-flex";
+                btn.disabled = false;
+                btn.textContent = "Test Microphone";
+            }
+            if (controls) controls.style.display = "none";
+        });
+
+        // Create interview
+        document.getElementById("startBtn")?.addEventListener("click", async function() {
+            const name = document.getElementById("candidateName").value.trim();
+            const role = document.getElementById("role").value;
+            const duration = parseInt(document.getElementById("duration").value) || 10;
+            const token = localStorage.getItem('token');
+            const btn = this;
+
+            if (!name) {
+                showStatus("Please enter your name.", "warning");
+                document.getElementById("candidateName").focus();
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Creating...";
+
+            try {
+                // Check permissions
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    testStream.getTracks().forEach(function(track) { track.stop(); });
+                }
+
+                const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const res = await fetch("/api/interview/create", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ room_id: roomId, role: role, candidate_name: name, duration: duration })
+                });
+
+                const data = await res.json();
+
+                if (data.status === "created") {
+                    window.location.href = "/interview/" + data.room_id;
+                } else if (res.status === 401) {
+                    showStatus("Session expired. Please login again.", "error");
+                    setTimeout(function() { window.location.href = "/login"; }, 2000);
+                } else {
+                    throw new Error(data.error || "Failed to create interview");
+                }
+            } catch (err) {
+                showStatus("Error: " + err.message, "error");
+                btn.disabled = false;
+                btn.textContent = "Start Interview Session";
+            }
+        });
+
+        // Enter key
+        document.getElementById("candidateName")?.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                document.getElementById("startBtn").click();
+            }
+        });
+
+        // Focus on load
+        document.getElementById("candidateName")?.focus();
+    </script>
 
 </body>
-
-</html>
+</html>	

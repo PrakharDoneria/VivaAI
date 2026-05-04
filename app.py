@@ -8,8 +8,10 @@ from flask_socketio import SocketIO
 
 from config import Config
 from models.interview import init_db
+from models.user import UserModel
 from routes.ai_routes import ai_bp
 from routes.interview_routes import interview_bp
+from routes.auth_routes import auth_bp
 from webrtc.signaling import register_signaling_events
 
 app = Flask(__name__)
@@ -27,6 +29,7 @@ socketio = SocketIO(
 # Register blueprints
 app.register_blueprint(ai_bp)
 app.register_blueprint(interview_bp)
+app.register_blueprint(auth_bp)  # ADD THIS LINE
 
 # Register WebRTC signaling socket events
 register_signaling_events(socketio)
@@ -45,6 +48,7 @@ def not_found(e):
 if __name__ == "__main__":
     # Initialize database
     init_db()
+    UserModel.init_users_table()  # ADD THIS LINE
 
     # Create required directories
     os.makedirs(Config.AUDIO_FOLDER, exist_ok=True)
@@ -62,4 +66,4 @@ if __name__ == "__main__":
         port=Config.PORT,
         debug=Config.DEBUG,
         allow_unsafe_werkzeug=True
-    )
+    )
