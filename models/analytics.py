@@ -33,10 +33,9 @@ def _parse_report_scores(report_text):
 
     # Technical Knowledge Score
     patterns = [
-        r'technical[\s-]*knowledge(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
-        r'technical[\s-]*knowledge[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
-        r'technical[\s-]*knowledge.*?\*\*[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
-        r'1\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'  # Fallback to item 1
+        r'Technical[\s-]*Knowledge(?:[\s-]*Score)?[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'technical[\s-]*knowledge.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
+        r'1\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'
     ]
     for p in patterns:
         val = _extract_score(report_text, p)
@@ -46,10 +45,9 @@ def _parse_report_scores(report_text):
 
     # Communication Score
     patterns = [
-        r'communication(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
-        r'communication[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
-        r'communication.*?\*\*[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
-        r'2\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'  # Fallback to item 2
+        r'Communication(?:[\s-]*Score)?[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'communication.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
+        r'2\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'
     ]
     for p in patterns:
         val = _extract_score(report_text, p)
@@ -59,10 +57,9 @@ def _parse_report_scores(report_text):
 
     # Problem Solving Score
     patterns = [
-        r'problem[\s-]*solving(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
-        r'problem[\s-]*solving[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
-        r'problem[\s-]*solving.*?\*\*[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
-        r'3\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'  # Fallback to item 3
+        r'Problem[\s-]*Solving(?:[\s-]*Score)?[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'problem[\s-]*solving.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
+        r'3\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'
     ]
     for p in patterns:
         val = _extract_score(report_text, p)
@@ -71,19 +68,22 @@ def _parse_report_scores(report_text):
             break
 
     # Overall Score
-    val = _extract_score(report_text, r'overall(?:[\s-]*score)?.*?\s+(\d+(?:\.\d+)?)\s*/\s*10')
-    if val is None:
-        val = _extract_score(report_text, r'overall[:\s]*(\d+(?:\.\d+)?)\s*/\s*10')
-    
-    if val is not None:
-        scores['overall'] = min(val, 10)
-    else:
-        # Fallback: average of available scores
+    patterns = [
+        r'Overall(?:[\s-]*Score)?[:\s]*(\d+(?:\.\d+)?)\s*/\s*10',
+        r'overall.*?\s+(\d+(?:\.\d+)?)\s*/\s*10',
+        r'4\.\s+.*?(\d+(?:\.\d+)?)\s*/\s*10'
+    ]
+    for p in patterns:
+        val = _extract_score(report_text, p)
+        if val is not None:
+            scores['overall'] = min(val, 10)
+            break
+
+    if 'overall' not in scores:
+        # Final fallback: average of available scores
         available = [v for k, v in scores.items() if k in ['technical', 'communication', 'problem_solving']]
         if available:
             scores['overall'] = round(sum(available) / len(available), 1)
-        else:
-            scores['overall'] = None
 
     # Confidence — derive from communication and problem solving if available
     if 'communication' in scores and 'problem_solving' in scores:
@@ -91,7 +91,7 @@ def _parse_report_scores(report_text):
 
     # Recommendation
     rec_match = re.search(
-        r'(?:final\s+)?recommendation[:\s]*(strong\s+hire|hire|maybe|no\s+hire)',
+        r'(?:final\s+)?recommendation[:\s]*\[?(strong\s+hire|hire|maybe|no\s+hire)\]?',
         report_text, re.IGNORECASE
     )
     if rec_match:
@@ -157,12 +157,13 @@ def get_analytics_data():
     cur.execute("SELECT COUNT(*) as total FROM interviews")
     total_all = cur.fetchone()['total']
 
-    # --- Fetch all completed interviews with reports ---
+    # --- Fetch all completed interviews ---
     cur.execute("""
         SELECT id, room_id, role, candidate_name, duration, report, qa_history, 
-               created_at, ended_at, status
+               technical_score, communication_score, problem_solving_score, 
+               overall_score, recommendation, created_at, ended_at, status
         FROM interviews
-        WHERE status = 'completed' AND report IS NOT NULL
+        WHERE status = 'completed'
         ORDER BY created_at DESC
     """)
     completed_interviews = [dict(row) for row in cur.fetchall()]
@@ -177,7 +178,22 @@ def get_analytics_data():
     recommendations = {'Strong Hire': 0, 'Hire': 0, 'Maybe': 0, 'No Hire': 0}
 
     for interview in completed_interviews:
-        scores = _parse_report_scores(interview.get('report', ''))
+        # Use existing scores if available, otherwise parse from report
+        if interview.get('overall_score') is not None:
+            scores = {
+                'technical': interview.get('technical_score'),
+                'communication': interview.get('communication_score'),
+                'problem_solving': interview.get('problem_solving_score'),
+                'overall': interview.get('overall_score'),
+                'recommendation': interview.get('recommendation'),
+            }
+            # Calculate confidence on the fly for consistency
+            if scores['communication'] and scores['problem_solving']:
+                scores['confidence'] = round((scores['communication'] + scores['problem_solving']) / 2, 1)
+        else:
+            # Legacy or failed initial parse: parse from report
+            scores = _parse_report_scores(interview.get('report', ''))
+            
         improvements = _extract_improvements(interview.get('report', ''))
         all_improvements.extend(improvements)
 
@@ -185,8 +201,8 @@ def get_analytics_data():
         if overall is not None:
             all_scores.append(overall)
 
-        for skill in skill_totals:
-            if skill in scores:
+        for skill in ['technical', 'communication', 'problem_solving', 'confidence']:
+            if scores.get(skill) is not None:
                 skill_totals[skill].append(scores[skill])
 
         rec = scores.get('recommendation', '')

@@ -24,6 +24,11 @@ def init_db():
         answers TEXT,
         qa_history TEXT,
         report TEXT,
+        technical_score REAL,
+        communication_score REAL,
+        problem_solving_score REAL,
+        overall_score REAL,
+        recommendation TEXT,
         status TEXT DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         ended_at TIMESTAMP
@@ -60,14 +65,32 @@ def save_answers(room_id, answers):
     conn.close()
 
 
-def save_report(room_id, report, qa_history=None):
+def save_report(room_id, report, qa_history=None, scores=None):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        "UPDATE interviews SET report=?, qa_history=?, status='completed', ended_at=CURRENT_TIMESTAMP WHERE room_id=?",
-        (report, qa_history, room_id)
-    )
+    if scores:
+        cur.execute(
+            """UPDATE interviews 
+               SET report=?, qa_history=?, status='completed', ended_at=CURRENT_TIMESTAMP,
+                   technical_score=?, communication_score=?, problem_solving_score=?, 
+                   overall_score=?, recommendation=?
+               WHERE room_id=?""",
+            (
+                report, qa_history, 
+                scores.get('technical'), 
+                scores.get('communication'), 
+                scores.get('problem_solving'), 
+                scores.get('overall'), 
+                scores.get('recommendation'),
+                room_id
+            )
+        )
+    else:
+        cur.execute(
+            "UPDATE interviews SET report=?, qa_history=?, status='completed', ended_at=CURRENT_TIMESTAMP WHERE room_id=?",
+            (report, qa_history, room_id)
+        )
 
     conn.commit()
     conn.close()

@@ -4,6 +4,7 @@ from ai.tts_engine import generate_voice
 from ai.report_engine import generate_report
 from ai.stt_engine import transcribe_audio
 from models.interview import save_report
+from models.analytics import _parse_report_scores
 from utils.sanitization import sanitize_model_output
 from utils.validation import QuestionRequest, ReportRequest
 from pydantic import ValidationError
@@ -50,7 +51,8 @@ def report():
 
         if room_id:
             import json
-            save_report(room_id, report_text, json.dumps(qa_history))
+            scores = _parse_report_scores(report_text)
+            save_report(room_id, report_text, json.dumps(qa_history), scores=scores)
 
         return jsonify({"report": report_text})
     except Exception as e:
