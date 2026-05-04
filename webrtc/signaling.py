@@ -1,22 +1,27 @@
+import threading
 from flask_socketio import emit, join_room, leave_room
 
 # Track room membership: room_id -> set of session IDs
 _rooms: dict = {}
+_rooms_lock = threading.RLock()  # Add lock for thread safety
 
 
 def _add_to_room(room_id, sid):
-    _rooms.setdefault(room_id, set()).add(sid)
+    with _rooms_lock:
+        _rooms.setdefault(room_id, set()).add(sid)
 
 
 def _remove_from_room(room_id, sid):
-    if room_id in _rooms:
-        _rooms[room_id].discard(sid)
-        if not _rooms[room_id]:
-            del _rooms[room_id]
+    with _rooms_lock:
+        if room_id in _rooms:
+            _rooms[room_id].discard(sid)
+            if not _rooms[room_id]:
+                del _rooms[room_id]
 
 
 def _count_in_room(room_id):
-    return len(_rooms.get(room_id, set()))
+    with _rooms_lock:
+        return len(_rooms.get(room_id, set()))
 
 
 def register_signaling_events(socketio):
@@ -84,6 +89,7 @@ def register_signaling_events(socketio):
         from flask import request as flask_request
         sid = flask_request.sid
         # Remove from all rooms this SID was in
-        for room_id in list(_rooms.keys()):
-            if sid in _rooms.get(room_id, set()):
-                _remove_from_room(room_id, sid)
+        with _rooms_lock:
+            for room_id in list(_rooms.keys()):
+                if sid in _rooms.get(room_id, set()):
+                    _remove_from_room(room_id, sid)
