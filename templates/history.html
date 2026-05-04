@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // Apply saved theme on load
+        (function () {
+            const saved = localStorage.getItem("vivaai-theme") || "dark";
+            document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
+    <meta name="description"
+        content="VivaAI Interview History — View, search, and export your past AI interview sessions and analytics.">
+    <title>VivaAI — Interview History & Export</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <a class="logo" href="/">
+            <div class="logo-icon">🤖</div>
+            <span class="logo-text">VivaAI</span>
+        </a>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <a href="/" class="btn btn-ghost btn-sm" style="text-decoration:none;">🏠 Home</a>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Page Hero -->
+        <section class="history-hero fade-in">
+            <div class="hero-eyebrow">
+                <span>✦</span> Interview Analytics
+            </div>
+            <h1 class="hero-title" style="font-size: clamp(1.6rem, 4vw, 2.5rem); margin-bottom: 10px;">Interview History</h1>
+            <p class="hero-subtitle" style="margin-bottom: 28px; font-size: 1rem;">
+                Browse all your past AI interview sessions, review results, and export data.
+            </p>
+        </section>
+
+        <!-- Stats Row -->
+        <div class="stats-row fade-in" id="statsRow">
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Total Interviews</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="statCompleted">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-value" id="statAvgDuration">0<span class="stat-unit">min</span></div>
+                <div class="stat-label">Avg Duration</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-value" id="statRoles">0</div>
+                <div class="stat-label">Unique Roles</div>
+            </div>
+        </div>
+
+        <!-- Controls Bar -->
+        <div class="history-controls card fade-in">
+            <div class="history-controls-left">
+                <div class="search-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input class="form-input search-input" id="searchInput" type="text"
+                        placeholder="Search by candidate name…" autocomplete="off">
+                </div>
+                <select class="form-input filter-select" id="filterRole">
+                    <option value="">All Roles</option>
+                </select>
+                <select class="form-input filter-select" id="filterStatus">
+                    <option value="">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="active">Active</option>
+                    <option value="ended">Ended</option>
+                </select>
+            </div>
+            <div class="history-controls-right">
+                <span class="result-count" id="resultCount">0 interviews</span>
+            </div>
+        </div>
+
+        <!-- Batch Toolbar -->
+        <div class="batch-toolbar card" id="batchToolbar">
+            <div class="batch-toolbar-left">
+                <span class="batch-count" id="batchCount">0 selected</span>
+            </div>
+            <div class="batch-toolbar-right">
+                <button class="btn btn-primary btn-sm" id="batchExportJson" onclick="batchExport('json')">
+                    📥 Export JSON
+                </button>
+                <button class="btn btn-success btn-sm" id="batchExportCsv" onclick="batchExport('csv')">
+                    📄 Export CSV
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="clearSelection()">✕ Clear</button>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="history-table-wrap card fade-in" id="tableWrap">
+            <table class="history-table" id="historyTable">
+                <thead>
+                    <tr>
+                        <th class="col-check">
+                            <label class="custom-check">
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                <span class="checkmark"></span>
+                            </label>
+                        </th>
+                        <th class="col-name sortable" data-sort="candidate_name" onclick="sortTable('candidate_name')">
+                            Candidate <span class="sort-arrow" id="sort_candidate_name"></span>
+                        </th>
+                        <th class="col-role sortable" data-sort="role" onclick="sortTable('role')">
+                            Role <span class="sort-arrow" id="sort_role"></span>
+                        </th>
+                        <th class="col-duration sortable" data-sort="duration" onclick="sortTable('duration')">
+                            Duration <span class="sort-arrow" id="sort_duration"></span>
+                        </th>
+                        <th class="col-status sortable" data-sort="status" onclick="sortTable('status')">
+                            Status <span class="sort-arrow" id="sort_status"></span>
+                        </th>
+                        <th class="col-date sortable" data-sort="created_at" onclick="sortTable('created_at')">
+                            Date <span class="sort-arrow" id="sort_created_at"></span>
+                        </th>
+                        <th class="col-actions">Export</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state card fade-in" id="emptyState" style="display:none;">
+            <div class="empty-icon">📭</div>
+            <h3>No Interviews Yet</h3>
+            <p>Start your first AI interview session and it'll show up here.</p>
+            <a href="/" class="btn btn-primary" style="margin-top:16px; text-decoration:none;">🚀 Start Interview</a>
+        </div>
+
+        <!-- No Results State -->
+        <div class="empty-state card fade-in" id="noResults" style="display:none;">
+            <div class="empty-icon">🔍</div>
+            <h3>No Results Found</h3>
+            <p>Try adjusting your search or filter criteria.</p>
+        </div>
+
+    </main>
+
+    <script>
+        // ── Theme Toggle ────────────────────────────────────
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById("themeToggle");
+            const isDark = html.getAttribute("data-theme") !== "light";
+            html.setAttribute("data-theme", isDark ? "light" : "dark");
+            btn.textContent = isDark ? "☀️" : "🌙";
+            localStorage.setItem("vivaai-theme", isDark ? "light" : "dark");
+        }
+        // Set initial icon
+        (function () {
+            const saved = localStorage.getItem("vivaai-theme") || "dark";
+            const btn = document.getElementById("themeToggle");
+            if (btn) btn.textContent = saved === "light" ? "☀️" : "🌙";
+        })();
+
+        // ── State ───────────────────────────────────────────
+        let allInterviews = [];
+        let filteredInterviews = [];
+        let selectedIds = new Set();
+        let currentSort = { key: "created_at", dir: "desc" };
+
+        // ── Init ────────────────────────────────────────────
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadInterviews();
+            document.getElementById("searchInput").addEventListener("input", applyFilters);
+            document.getElementById("filterRole").addEventListener("change", applyFilters);
+            document.getElementById("filterStatus").addEventListener("change", applyFilters);
+        });
+
+        async function loadInterviews() {
+            try {
+                const res = await fetch("/api/history");
+                const data = await res.json();
+                allInterviews = data.interviews || [];
+                populateRoleFilter();
+                applyFilters();
+                updateStats();
+            } catch (err) {
+                console.error("Failed to load interviews:", err);
+            }
+        }
+
+        // ── Stats ───────────────────────────────────────────
+        function updateStats() {
+            const total = allInterviews.length;
+            const completed = allInterviews.filter(i => i.status === "completed").length;
+            const durations = allInterviews.map(i => i.duration || 0);
+            const avgDur = total > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / total) : 0;
+            const roles = new Set(allInterviews.map(i => i.role)).size;
+
+            animateCounter("statTotal", total);
+            animateCounter("statCompleted", completed);
+            animateCounter("statAvgDuration", avgDur, "min");
+            animateCounter("statRoles", roles);
+        }
+
+        function animateCounter(id, target, unit) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let current = 0;
+            const step = Math.max(1, Math.ceil(target / 30));
+            const interval = setInterval(() => {
+                current = Math.min(current + step, target);
+                el.innerHTML = current + (unit ? `<span class="stat-unit">${unit}</span>` : "");
+                if (current >= target) clearInterval(interval);
+            }, 30);
+        }
+
+        // ── Filters ─────────────────────────────────────────
+        function populateRoleFilter() {
+            const select = document.getElementById("filterRole");
+            const roles = [...new Set(allInterviews.map(i => i.role))].sort();
+            // Keep first option
+            select.innerHTML = '<option value="">All Roles</option>';
+            roles.forEach(r => {
+                const opt = document.createElement("option");
+                opt.value = r;
+                opt.textContent = r;
+                select.appendChild(opt);
+            });
+        }
+
+        function applyFilters() {
+            const search = document.getElementById("searchInput").value.toLowerCase().trim();
+            const roleFilter = document.getElementById("filterRole").value;
+            const statusFilter = document.getElementById("filterStatus").value;
+
+            filteredInterviews = allInterviews.filter(i => {
+                const matchName = !search || (i.candidate_name || "").toLowerCase().includes(search);
+                const matchRole = !roleFilter || i.role === roleFilter;
+                const matchStatus = !statusFilter || i.status === statusFilter;
+                return matchName && matchRole && matchStatus;
+            });
+
+            // Apply current sort
+            sortData();
+            renderTable();
+        }
+
+        // ── Sorting ─────────────────────────────────────────
+        function sortTable(key) {
+            if (currentSort.key === key) {
+                currentSort.dir = currentSort.dir === "asc" ? "desc" : "asc";
+            } else {
+                currentSort.key = key;
+                currentSort.dir = "asc";
+            }
+
+            // Update arrows
+            document.querySelectorAll(".sort-arrow").forEach(el => el.textContent = "");
+            const arrow = document.getElementById("sort_" + key);
+            if (arrow) arrow.textContent = currentSort.dir === "asc" ? "↑" : "↓";
+
+            sortData();
+            renderTable();
+        }
+
+        function sortData() {
+            const { key, dir } = currentSort;
+            filteredInterviews.sort((a, b) => {
+                let va = a[key] ?? "";
+                let vb = b[key] ?? "";
+                if (typeof va === "number" && typeof vb === "number") {
+                    return dir === "asc" ? va - vb : vb - va;
+                }
+                va = String(va).toLowerCase();
+                vb = String(vb).toLowerCase();
+                if (va < vb) return dir === "asc" ? -1 : 1;
+                if (va > vb) return dir === "asc" ? 1 : -1;
+                return 0;
+            });
+        }
+
+        // ── Render Table ────────────────────────────────────
+        function renderTable() {
+            const tbody = document.getElementById("tableBody");
+            const tableWrap = document.getElementById("tableWrap");
+            const emptyState = document.getElementById("emptyState");
+            const noResults = document.getElementById("noResults");
+            const resultCount = document.getElementById("resultCount");
+
+            resultCount.textContent = `${filteredInterviews.length} interview${filteredInterviews.length !== 1 ? "s" : ""}`;
+
+            // Show/hide states
+            if (allInterviews.length === 0) {
+                tableWrap.style.display = "none";
+                emptyState.style.display = "flex";
+                noResults.style.display = "none";
+                return;
+            }
+
+            if (filteredInterviews.length === 0) {
+                tableWrap.style.display = "none";
+                emptyState.style.display = "none";
+                noResults.style.display = "flex";
+                return;
+            }
+
+            tableWrap.style.display = "block";
+            emptyState.style.display = "none";
+            noResults.style.display = "none";
+
+            tbody.innerHTML = "";
+
+            filteredInterviews.forEach((interview, idx) => {
+                const tr = document.createElement("tr");
+                tr.className = selectedIds.has(interview.room_id) ? "row-selected" : "";
+                tr.setAttribute("data-room", interview.room_id);
+
+                const statusClass = interview.status === "completed" ? "badge-success"
+                    : interview.status === "active" ? "badge-info" : "badge-muted";
+
+                const dateStr = interview.created_at ? formatDate(interview.created_at) : "—";
+
+                tr.innerHTML = `
+                    <td class="col-check">
+                        <label class="custom-check">
+                            <input type="checkbox" onchange="toggleSelect('${interview.room_id}')"
+                                ${selectedIds.has(interview.room_id) ? "checked" : ""}>
+                            <span class="checkmark"></span>
+                        </label>
+                    </td>
+                    <td class="col-name">
+                        <div class="candidate-cell">
+                            <div class="candidate-avatar">${(interview.candidate_name || "?")[0].toUpperCase()}</div>
+                            <span>${escapeHtml(interview.candidate_name || "Unknown")}</span>
+                        </div>
+                    </td>
+                    <td class="col-role"><span class="role-tag">${escapeHtml(interview.role || "—")}</span></td>
+                    <td class="col-duration">${interview.duration || 0} min</td>
+                    <td class="col-status"><span class="status-badge ${statusClass}">${escapeHtml(interview.status || "unknown")}</span></td>
+                    <td class="col-date">${dateStr}</td>
+                    <td class="col-actions">
+                        <div class="export-actions">
+                            <button class="btn-icon" title="Export JSON" onclick="exportSingle('${interview.room_id}', 'json')">
+                                <span class="btn-icon-text">{ }</span>
+                            </button>
+                            <button class="btn-icon" title="Export CSV" onclick="exportSingle('${interview.room_id}', 'csv')">
+                                <span class="btn-icon-text">CSV</span>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateBatchToolbar();
+        }
+
+        // ── Selection ───────────────────────────────────────
+        function toggleSelect(roomId) {
+            if (selectedIds.has(roomId)) {
+                selectedIds.delete(roomId);
+            } else {
+                selectedIds.add(roomId);
+            }
+            updateBatchToolbar();
+            // Update row highlight
+            const row = document.querySelector(`tr[data-room="${roomId}"]`);
+            if (row) row.className = selectedIds.has(roomId) ? "row-selected" : "";
+
+            // Update select-all checkbox
+            const selectAll = document.getElementById("selectAll");
+            if (selectAll) {
+                selectAll.checked = filteredInterviews.length > 0 && filteredInterviews.every(i => selectedIds.has(i.room_id));
+            }
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById("selectAll");
+            if (selectAll.checked) {
+                filteredInterviews.forEach(i => selectedIds.add(i.room_id));
+            } else {
+                filteredInterviews.forEach(i => selectedIds.delete(i.room_id));
+            }
+            renderTable();
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            const selectAll = document.getElementById("selectAll");
+            if (selectAll) selectAll.checked = false;
+            renderTable();
+        }
+
+        function updateBatchToolbar() {
+            const toolbar = document.getElementById("batchToolbar");
+            const count = document.getElementById("batchCount");
+            if (selectedIds.size > 0) {
+                toolbar.classList.add("visible");
+                count.textContent = `${selectedIds.size} selected`;
+            } else {
+                toolbar.classList.remove("visible");
+            }
+        }
+
+        // ── Export ───────────────────────────────────────────
+        function exportSingle(roomId, format) {
+            window.location.href = `/api/export/${roomId}?format=${format}`;
+        }
+
+        async function batchExport(format) {
+            const roomIds = [...selectedIds];
+            if (roomIds.length === 0) return;
+
+            try {
+                const res = await fetch(`/api/export/batch?format=${format}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ room_ids: roomIds })
+                });
+
+                if (!res.ok) throw new Error("Export failed");
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `interviews_export.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("Batch export failed:", err);
+                alert("Export failed. Please try again.");
+            }
+        }
+
+        // ── Helpers ──────────────────────────────────────────
+        function formatDate(dateStr) {
+            try {
+                const d = new Date(dateStr);
+                return d.toLocaleDateString("en-IN", {
+                    year: "numeric", month: "short", day: "numeric",
+                    hour: "2-digit", minute: "2-digit"
+                });
+            } catch {
+                return dateStr;
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement("div");
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+
+</body>
+
+</html>
