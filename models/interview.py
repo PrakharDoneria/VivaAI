@@ -21,6 +21,7 @@ def init_db():
         role TEXT,
         candidate_name TEXT,
         duration INTEGER DEFAULT 10,
+        user_id INTEGER,
         answers TEXT,
         qa_history TEXT,
         report TEXT,
@@ -34,13 +35,13 @@ def init_db():
     conn.close()
 
 
-def create_interview(room_id, role, candidate_name, duration=10):
+def create_interview(room_id, role, candidate_name, duration=10, user_id=None):
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute(
-        "INSERT OR REPLACE INTO interviews (room_id, role, candidate_name, duration, status) VALUES (?, ?, ?, ?, 'active')",
-        (room_id, role, candidate_name, duration)
+        "INSERT OR REPLACE INTO interviews (room_id, role, candidate_name, duration, user_id, status) VALUES (?, ?, ?, ?, ?, 'active')",
+        (room_id, role, candidate_name, duration, user_id)
     )
 
     conn.commit()
