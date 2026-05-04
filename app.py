@@ -64,4 +64,4 @@ if __name__ == "__main__":
         port=Config.PORT,
         debug=Config.DEBUG,
         allow_unsafe_werkzeug=True
-    )
+    )
