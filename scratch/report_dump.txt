@@ -1,0 +1,11 @@
+
+**Evaluation of Interview Session**
+
+1. **Technical Knowledge Score (out of 10):** 5/10  
+   *Justification:* The candidate demonstrates basic familiarity with cloud APIs (Gemini/Vertex) and quota/billing concepts but lacks specificity. They mention troubleshooting steps like enabling APIs and adjusting billing but fail to name specific APIs, quota types, or tools (e.g., Google Cloud’s IAM, monitoring dashboards). The explanation of quota limits and billing misalignment is vague and lacks technical depth.
+
+2. **Communication Score (out of 10):** 4/10  
+   *Justification:* Responses are disorganized, filled with filler words (“like,” “uh”), and lack clarity. For example, Answer 1 is incoherent, and Answer 4 conflates billing and API enablement without logical flow. The candidate struggles to articulate a structured narrative, making it difficult to follow their reasoning.
+
+3. **Problem-Solving Score (out of 10):** 6/10  
+   *Justification:* The candidate shows persistence (4–5 hours of research) and resourcefulness (leveraging documentation/YouTube), but their troubleshooting process lacks methodical rigor. They do not explain how they isolated the root cause (e.g., checking quota metrics, reviewing API-specific logs) or validated the effectiveness of each step. The focus on “enabling APIs” is overly broad and uncritical.

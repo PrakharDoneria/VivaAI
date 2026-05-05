@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // Apply saved theme on load
+        (function () {
+            const saved = localStorage.getItem("vivaai-theme") || "dark";
+            document.documentElement.setAttribute("data-theme", saved);
+        })();
+
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById("themeToggle");
+            const isDark = html.getAttribute("data-theme") !== "light";
+            html.setAttribute("data-theme", isDark ? "light" : "dark");
+            btn.textContent = isDark ? "☀️" : "🌙";
+            localStorage.setItem("vivaai-theme", isDark ? "light" : "dark");
+        }
+    </script>
+    <meta name="description"
+        content="VivaAI Analytics — Track your interview progress, view performance trends, and get improvement insights.">
+    <title>VivaAI — Interview Analytics Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/analytics.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <a class="logo" href="/">
+            <div class="logo-icon">🤖</div>
+            <span class="logo-text">VivaAI</span>
+        </a>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <a href="/" class="btn btn-ghost btn-sm" style="font-size:0.8rem; padding:6px 14px; text-decoration:none;">🏠 Home</a>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+            <span class="header-badge">Analytics</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Dashboard Header -->
+        <section class="dashboard-header fade-in">
+            <div class="dashboard-eyebrow">
+                <span>✦</span> Performance Analytics
+            </div>
+            <h1 class="dashboard-title">Interview Analytics</h1>
+            <p class="dashboard-subtitle">
+                Track your interview progress, identify strengths and weaknesses, and get actionable insights to improve
+                your performance.
+            </p>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Loading your analytics data...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display:none;">
+            <div class="empty-icon">📊</div>
+            <h2>No Interview Data Yet</h2>
+            <p>Complete your first interview to start tracking your performance and see analytics here.</p>
+            <a href="/" class="btn btn-primary btn-lg" style="margin-top: 20px; text-decoration:none;">🚀 Start Your First Interview</a>
+        </div>
+
+        <!-- Dashboard Content (hidden until data loads) -->
+        <div id="dashboardContent" style="display:none;">
+
+            <!-- Summary Cards Row -->
+            <div class="stats-grid fade-in">
+                <div class="stat-card stat-card-accent" id="statTotal">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="totalInterviews">0</span>
+                        <span class="stat-label">Interviews Completed</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-success" id="statAvg">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="avgScore">0</span>
+                        <span class="stat-label">Average Score</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-warning" id="statHigh">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="highScore">0</span>
+                        <span class="stat-label">Highest Score</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-danger" id="statLow">
+                    <div class="stat-icon">📉</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="lowScore">0</span>
+                        <span class="stat-label">Lowest Score</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Grid -->
+            <div class="dashboard-grid">
+
+                <!-- Progress Chart -->
+                <div class="card dashboard-card chart-card fade-in" id="chartCard">
+                    <div class="card-header">
+                        <h2 class="card-title">📊 Score Trend Over Time</h2>
+                        <span class="card-badge">Progress</span>
+                    </div>
+                    <div class="chart-container" id="chartContainer">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Skill Breakdown -->
+                <div class="card dashboard-card skills-card fade-in" id="skillsCard">
+                    <div class="card-header">
+                        <h2 class="card-title">🧠 Skill Breakdown</h2>
+                        <span class="card-badge">Skills</span>
+                    </div>
+                    <div class="skills-container" id="skillsContainer">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Recommendations Donut -->
+                <div class="card dashboard-card recommendations-card fade-in" id="recCard">
+                    <div class="card-header">
+                        <h2 class="card-title">🏷️ Recommendations</h2>
+                        <span class="card-badge">Outcome</span>
+                    </div>
+                    <div class="rec-container" id="recContainer">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Improvement Suggestions -->
+                <div class="card dashboard-card improvements-card fade-in" id="improvCard">
+                    <div class="card-header">
+                        <h2 class="card-title">💡 Improvement Suggestions</h2>
+                        <span class="card-badge">Insights</span>
+                    </div>
+                    <div class="improvements-container" id="improvementsContainer">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interview History Table -->
+            <div class="card dashboard-card history-card fade-in" id="historyCard">
+                <div class="card-header">
+                    <h2 class="card-title">📋 Recent Interview History</h2>
+                    <span class="card-badge" id="historyCount">0 sessions</span>
+                </div>
+                <div class="table-wrapper">
+                    <table class="history-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Date</th>
+                                <th>Role</th>
+                                <th>Score</th>
+                                <th>Technical</th>
+                                <th>Communication</th>
+                                <th>Problem Solving</th>
+                                <th>Recommendation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="/static/js/analytics.js"></script>
+
+</body>
+
+</html>

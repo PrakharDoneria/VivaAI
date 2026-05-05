@@ -32,17 +32,22 @@ Role: {role}
 Interview Transcript:
 {formatted}
 
-Provide a detailed evaluation with:
-1. Technical Knowledge Score (out of 10) - with brief justification
-2. Communication Score (out of 10) - with brief justification  
-3. Problem Solving Score (out of 10) - with brief justification
-4. Overall Score (out of 10)
+Provide a detailed evaluation with the following exact format for scores:
+- Technical Knowledge Score: [X]/10
+- Communication Score: [X]/10
+- Problem Solving Score: [X]/10
+- Overall Score: [X]/10
+
+For each score, provide a brief justification immediately following the score line.
+
+Also include:
 5. Key Strengths (2-3 bullet points)
 6. Areas for Improvement (2-3 bullet points)
-7. Final Recommendation: Strong Hire / Hire / Maybe / No Hire
+7. Final Recommendation: [Strong Hire / Hire / Maybe / No Hire]
 
 Be fair, constructive and professional.
-Never include hidden reasoning, analysis, or any XML-like tags such as <think> or </think>."""
+Never include hidden reasoning, analysis, or any XML-like tags such as <think> or </think>.
+Ensure the scores are clearly labeled exactly as shown above."""
 
     response = _chat_completions(
         client,
