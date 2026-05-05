@@ -4,11 +4,13 @@ import os
 from contextlib import contextmanager
 from config import Config
 
+# Thread-safe database connection management
 _db_lock = threading.RLock()
 _thread_local = threading.local()
 
 
 def get_connection():
+    """Get thread-local database connection"""
     os.makedirs(os.path.dirname(Config.DATABASE_PATH), exist_ok=True)
     
     if not hasattr(_thread_local, 'connection'):
@@ -23,6 +25,7 @@ def get_connection():
 
 @contextmanager
 def db_transaction():
+    """Context manager for database transactions with automatic commit/rollback"""
     with _db_lock:
         conn = get_connection()
         try:
@@ -34,6 +37,7 @@ def db_transaction():
 
 
 def init_db():
+    """Initialize database tables"""
     with db_transaction() as conn:
         cur = conn.cursor()
         cur.execute("""
@@ -54,6 +58,7 @@ def init_db():
 
 
 def create_interview(room_id, role, candidate_name, duration=10):
+    """Create a new interview"""
     with db_transaction() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -63,6 +68,7 @@ def create_interview(room_id, role, candidate_name, duration=10):
 
 
 def save_answers(room_id, answers):
+    """Save answers for an interview"""
     with db_transaction() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -72,6 +78,7 @@ def save_answers(room_id, answers):
 
 
 def save_report(room_id, report, qa_history=None):
+    """Save report for an interview"""
     with db_transaction() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -81,6 +88,7 @@ def save_report(room_id, report, qa_history=None):
 
 
 def end_interview(room_id):
+    """Mark interview as ended"""
     with db_transaction() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -90,6 +98,7 @@ def end_interview(room_id):
 
 
 def get_interview(room_id):
+    """Get interview by room ID"""
     with db_transaction() as conn:
         cur = conn.cursor()
         cur.execute(
