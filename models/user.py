@@ -1,5 +1,5 @@
 import sqlite3
-import bcrypt
+from passlib.hash import bcrypt
 import jwt
 from datetime import datetime, timedelta
 from config import Config
@@ -24,14 +24,14 @@ class UserModel:
     
     @staticmethod
     def create_user(email, password, name):
-        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        password_hash = bcrypt.hash(password)
         
         conn = sqlite3.connect(Config.DATABASE_PATH)
         cursor = conn.cursor()
         try:
             cursor.execute(
                 "INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)",
-                (email, password_hash.decode('utf-8'), name)
+                (email, password_hash, name)
             )
             conn.commit()
             user_id = cursor.lastrowid
@@ -49,7 +49,7 @@ class UserModel:
         user = cursor.fetchone()
         conn.close()
         
-        if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
+        if user and bcrypt.verify(password, user[2]):
             return {"id": user[0], "email": user[1], "name": user[3]}
         return None
     
