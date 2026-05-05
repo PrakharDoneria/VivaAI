@@ -117,6 +117,8 @@ def verify_install():
         ("flask_socketio", "flask-socketio"),
         ("dotenv", "python-dotenv"),
         ("eventlet", "eventlet"),
+        ("bcrypt", "bcrypt"),
+        ("jwt", "PyJWT"),
     ]
     all_ok = True
     for import_name, pkg_name in packages:
