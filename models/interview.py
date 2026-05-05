@@ -1,101 +1,99 @@
 import sqlite3
+import threading
 import os
+from contextlib import contextmanager
 from config import Config
+
+_db_lock = threading.RLock()
+_thread_local = threading.local()
 
 
 def get_connection():
     os.makedirs(os.path.dirname(Config.DATABASE_PATH), exist_ok=True)
-    conn = sqlite3.connect(Config.DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    
+    if not hasattr(_thread_local, 'connection'):
+        _thread_local.connection = sqlite3.connect(
+            Config.DATABASE_PATH,
+            check_same_thread=False,
+            timeout=30.0
+        )
+        _thread_local.connection.row_factory = sqlite3.Row
+    return _thread_local.connection
+
+
+@contextmanager
+def db_transaction():
+    with _db_lock:
+        conn = get_connection()
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def init_db():
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS interviews (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        room_id TEXT UNIQUE,
-        role TEXT,
-        candidate_name TEXT,
-        duration INTEGER DEFAULT 10,
-        answers TEXT,
-        qa_history TEXT,
-        report TEXT,
-        status TEXT DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        ended_at TIMESTAMP
-    )
-    """)
-
-    conn.commit()
-    conn.close()
+    with db_transaction() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS interviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id TEXT UNIQUE,
+            role TEXT,
+            candidate_name TEXT,
+            duration INTEGER DEFAULT 10,
+            answers TEXT,
+            qa_history TEXT,
+            report TEXT,
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ended_at TIMESTAMP
+        )
+        """)
 
 
 def create_interview(room_id, role, candidate_name, duration=10):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute(
-        "INSERT OR REPLACE INTO interviews (room_id, role, candidate_name, duration, status) VALUES (?, ?, ?, ?, 'active')",
-        (room_id, role, candidate_name, duration)
-    )
-
-    conn.commit()
-    conn.close()
+    with db_transaction() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT OR REPLACE INTO interviews (room_id, role, candidate_name, duration, status) VALUES (?, ?, ?, ?, 'active')",
+            (room_id, role, candidate_name, duration)
+        )
 
 
 def save_answers(room_id, answers):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute(
-        "UPDATE interviews SET answers=? WHERE room_id=?",
-        (answers, room_id)
-    )
-
-    conn.commit()
-    conn.close()
+    with db_transaction() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE interviews SET answers=? WHERE room_id=?",
+            (answers, room_id)
+        )
 
 
 def save_report(room_id, report, qa_history=None):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute(
-        "UPDATE interviews SET report=?, qa_history=?, status='completed', ended_at=CURRENT_TIMESTAMP WHERE room_id=?",
-        (report, qa_history, room_id)
-    )
-
-    conn.commit()
-    conn.close()
+    with db_transaction() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE interviews SET report=?, qa_history=?, status='completed', ended_at=CURRENT_TIMESTAMP WHERE room_id=?",
+            (report, qa_history, room_id)
+        )
 
 
 def end_interview(room_id):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute(
-        "UPDATE interviews SET status='ended', ended_at=CURRENT_TIMESTAMP WHERE room_id=?",
-        (room_id,)
-    )
-
-    conn.commit()
-    conn.close()
+    with db_transaction() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE interviews SET status='ended', ended_at=CURRENT_TIMESTAMP WHERE room_id=?",
+            (room_id,)
+        )
 
 
 def get_interview(room_id):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute(
-        "SELECT * FROM interviews WHERE room_id=?",
-        (room_id,)
-    )
-
-    interview = cur.fetchone()
-    conn.close()
-
-    return interview
+    with db_transaction() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM interviews WHERE room_id=?",
+            (room_id,)
+        )
+        return cur.fetchone()
