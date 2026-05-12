@@ -15,6 +15,11 @@ from routes.history_routes import history_bp
 from webrtc.signaling import register_signaling_events
 
 app = Flask(__name__)
+@app.route("/health", methods=["GET"])
+def health_check():
+    return {
+        "status": "healthy"
+    }, 200
 app.config.from_object(Config)
 
 limiter.init_app(app)
