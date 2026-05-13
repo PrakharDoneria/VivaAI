@@ -8,6 +8,8 @@ from flask_socketio import SocketIO
 
 from config import Config
 from models.interview import init_db
+from extensions import db
+from models.interview import Interview
 from routes.ai_routes import ai_bp
 from routes.interview_routes import interview_bp
 from routes.history_routes import history_bp
@@ -15,6 +17,9 @@ from webrtc.signaling import register_signaling_events
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Initialize extensions
+db.init_app(app)
 
 socketio = SocketIO(
     app,
@@ -46,7 +51,8 @@ def not_found(e):
 
 if __name__ == "__main__":
     # Initialize database
-    init_db()
+    with app.app_context():
+        db.create_all()
 
     # Create required directories
     os.makedirs(Config.AUDIO_FOLDER, exist_ok=True)

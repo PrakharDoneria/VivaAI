@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from ai.question_engine import generate_question
 from ai.tts_engine import generate_voice
 from ai.report_engine import generate_report
@@ -7,6 +7,9 @@ from models.interview import save_report
 from utils.sanitization import sanitize_model_output
 from utils.validation import QuestionRequest, ReportRequest
 from pydantic import ValidationError
+import threading
+import json
+from extensions import db
 
 ai_bp = Blueprint("ai", __name__)
 
@@ -45,16 +48,26 @@ def report():
     qa_history = data.qa_history
     room_id = data.room_id
 
-    try:
-        report_text = sanitize_model_output(generate_report(role, qa_history))
+    def generate_and_save_report(app_context, room_id, role, qa_history):
+        with app_context:
+            try:
+                report_text = sanitize_model_output(generate_report(role, qa_history))
+                save_report(room_id, report_text, json.dumps(qa_history))
+                print(f"  [AI] Report generated for room: {room_id}")
+            except Exception as e:
+                print(f"  [AI Error] Background report generation failed: {str(e)}")
 
-        if room_id:
-            import json
-            save_report(room_id, report_text, json.dumps(qa_history))
+    from flask import current_app
+    app_context = current_app.app_context()
+    
+    # Start background task
+    thread = threading.Thread(
+        target=generate_and_save_report,
+        args=(app_context, room_id, role, qa_history)
+    )
+    thread.start()
 
-        return jsonify({"report": report_text})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"status": "processing", "message": "Report is being generated in the background."})
 
 
 @ai_bp.route("/api/ai/transcribe", methods=["POST"])

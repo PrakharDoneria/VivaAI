@@ -26,7 +26,7 @@ def room_page(room_id):
     interview = get_interview(room_id)
     if not interview:
         return render_template("index.html")
-    return render_template("interview_room.html", room_id=room_id, interview=dict(interview))
+    return render_template("interview_room.html", room_id=room_id, interview=interview.to_dict())
 
 
 @interview_bp.route("/api/interview/create", methods=["POST"])
@@ -56,7 +56,7 @@ def get(room_id):
     interview = get_interview(room_id)
 
     if interview:
-        return jsonify(dict(interview))
+        return jsonify(interview.to_dict())
 
     return jsonify({"error": "Interview not found"}), 404
 
