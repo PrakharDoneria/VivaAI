@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>window.__VIVAAI_API_KEY__ = {{ (vivaai_api_key or '')|tojson }};</script>
+    <script src="/static/js/api.js"></script>
     <meta name="description" content="VivaAI — Create a new AI interview session">
     <title>VivaAI — Create Interview</title>
     <link rel="stylesheet" href="/static/css/style.css">
@@ -87,7 +89,7 @@
             try {
                 const res = await fetch("/api/interview/create", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: vivaaiApiHeaders({ "Content-Type": "application/json" }),
                     body: JSON.stringify({ room_id: roomId, role, candidate_name: name })
                 });
                 const data = await res.json();

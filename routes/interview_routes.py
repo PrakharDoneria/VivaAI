@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template
 from models.interview import create_interview, save_answers, get_interview
+from utils.auth import require_api_key
 from utils.validation import CreateInterviewRequest, SaveAnswersRequest
 from pydantic import ValidationError
 import uuid
@@ -30,6 +31,7 @@ def room_page(room_id):
 
 
 @interview_bp.route("/api/interview/create", methods=["POST"])
+@require_api_key
 def create():
     try:
         data = CreateInterviewRequest(**request.get_json())
@@ -62,6 +64,7 @@ def get(room_id):
 
 
 @interview_bp.route("/api/interview/<room_id>/answers", methods=["POST"])
+@require_api_key
 def save(room_id):
     if not validate_room_id(room_id):
         return jsonify({"error": "Invalid room ID"}), 400

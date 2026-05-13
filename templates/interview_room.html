@@ -240,6 +240,8 @@
     </script>
 
     <!-- Load scripts in correct order -->
+    <script>window.__VIVAAI_API_KEY__ = {{ (vivaai_api_key or '')|tojson }};</script>
+    <script src="/static/js/api.js"></script>
     <script src="/static/js/socket.js"></script>
     <script src="/static/js/webrtc.js"></script>
     <script src="/static/js/audio.js"></script>

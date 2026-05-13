@@ -90,7 +90,7 @@ async function fetchNextQuestion(answerText) {
     try {
         const response = await fetch("/api/ai/question", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: vivaaiApiHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify({
                 role: roleValue,
                 answer: answerText,
@@ -203,7 +203,7 @@ async function endInterview() {
     try {
         const response = await fetch("/api/ai/report", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: vivaaiApiHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify({
                 role: roleValue,
                 qa_history: questionHistory,

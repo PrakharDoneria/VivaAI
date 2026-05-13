@@ -3,7 +3,9 @@ from ai.question_engine import generate_question
 from ai.tts_engine import generate_voice
 from ai.report_engine import generate_report
 from ai.stt_engine import transcribe_audio
+from limiter_ext import limiter
 from models.interview import save_report
+from utils.auth import require_api_key
 from utils.sanitization import sanitize_model_output
 from utils.validation import QuestionRequest, ReportRequest
 from pydantic import ValidationError
@@ -15,6 +17,8 @@ ai_bp = Blueprint("ai", __name__)
 
 
 @ai_bp.route("/api/ai/question", methods=["POST"])
+@limiter.limit("10 per minute")
+@require_api_key
 def question():
     try:
         data = QuestionRequest(**request.get_json())
@@ -38,6 +42,8 @@ def question():
 
 
 @ai_bp.route("/api/ai/report", methods=["POST"])
+@limiter.limit("10 per minute")
+@require_api_key
 def report():
     try:
         data = ReportRequest(**request.get_json())
@@ -71,6 +77,8 @@ def report():
 
 
 @ai_bp.route("/api/ai/transcribe", methods=["POST"])
+@limiter.limit("10 per minute")
+@require_api_key
 def transcribe():
     file = request.files.get("audio")
     if not file:
