@@ -80,7 +80,20 @@ function initSpeechRecognition() {
     speechRecognitionSupported = true;
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-IN";
+    
+    const LANG_MAP = {
+        "English": "en-IN",
+        "Hindi": "hi-IN",
+        "Tamil": "ta-IN",
+        "Telugu": "te-IN",
+        "Kannada": "kn-IN",
+        "Malayalam": "ml-IN",
+        "Marathi": "mr-IN",
+        "Gujarati": "gu-IN",
+        "Bengali": "bn-IN"
+    };
+    
+    recognition.lang = LANG_MAP[window.interviewLanguage] || "en-IN";
 
     recognition.onresult = (event) => {
         let interim = "";

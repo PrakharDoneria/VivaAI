@@ -25,9 +25,11 @@ def question():
     role = data.role
     answer = data.answer
     question_history = data.question_history
+    resume_text = data.resume_text
+    language = data.language
 
     try:
-        question_text = sanitize_model_output(generate_question(role, answer, question_history))
+        question_text = sanitize_model_output(generate_question(role, answer, question_history, resume_text, language))
         audio_url = generate_voice(question_text)
 
         return jsonify({

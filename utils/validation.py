@@ -5,6 +5,8 @@ class QuestionRequest(BaseModel):
     role: str = Field(default="Software Developer", min_length=2, max_length=100)
     answer: Optional[str] = Field(default=None, max_length=5000)
     question_history: List[dict] = Field(default_factory=list)
+    resume_text: Optional[str] = Field(default=None, max_length=10000)
+    language: str = Field(default="English", max_length=50)
 
     @field_validator("question_history")
     @classmethod
@@ -32,6 +34,8 @@ class CreateInterviewRequest(BaseModel):
     role: str = Field(default="Software Developer", min_length=2, max_length=100)
     candidate_name: str = Field(default="Candidate", min_length=1, max_length=100)
     duration: int = Field(default=10, ge=1, le=60)
+    resume_text: Optional[str] = Field(default=None, max_length=10000)
+    language: str = Field(default="English", max_length=50)
 
 class SaveAnswersRequest(BaseModel):
     answers: str = Field(..., min_length=1, max_length=10000)
