@@ -15,6 +15,7 @@
         content="VivaAI Interview History — View, search, and export your past AI interview sessions and analytics.">
     <title>VivaAI — Interview History & Export</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -65,6 +66,22 @@
                 <div class="stat-value" id="statRoles">0</div>
                 <div class="stat-label">Unique Roles</div>
             </div>
+
+        <!-- Dashboard Row -->
+        <div class="dashboard-row fade-in" id="dashboardRow">
+            <div class="card chart-card">
+                <h3>Interview Activity</h3>
+                <div class="chart-container">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+            <div class="card chart-card">
+                <h3>Status Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
         </div>
 
         <!-- Controls Bar -->
@@ -196,6 +213,7 @@
                 populateRoleFilter();
                 applyFilters();
                 updateStats();
+                initCharts();
             } catch (err) {
                 console.error("Failed to load interviews:", err);
             }
@@ -225,6 +243,93 @@
                 el.innerHTML = current + (unit ? `<span class="stat-unit">${unit}</span>` : "");
                 if (current >= target) clearInterval(interval);
             }, 30);
+        }
+
+        // ── Charts ──────────────────────────────────────────
+        let activityChart = null;
+        let statusChart = null;
+
+        function initCharts() {
+            initActivityChart();
+            initStatusChart();
+        }
+
+        function initActivityChart() {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            const dataMap = {};
+            
+            // Group by date
+            allInterviews.forEach(i => {
+                const date = new Date(i.created_at).toLocaleDateString();
+                dataMap[date] = (dataMap[date] || 0) + 1;
+            });
+
+            const labels = Object.keys(dataMap).sort((a, b) => new Date(a) - new Date(b)).slice(-7);
+            const values = labels.map(l => dataMap[l]);
+
+            if (activityChart) activityChart.destroy();
+
+            activityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Interviews',
+                        data: values,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#3b82f6',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function initStatusChart() {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            const statusCounts = {
+                completed: allInterviews.filter(i => i.status === 'completed').length,
+                active: allInterviews.filter(i => i.status === 'active').length,
+                ended: allInterviews.filter(i => i.status === 'ended').length
+            };
+
+            if (statusChart) statusChart.destroy();
+
+            statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Active', 'Ended'],
+                    datasets: [{
+                        data: [statusCounts.completed, statusCounts.active, statusCounts.ended],
+                        backgroundColor: ['#10b981', '#06b6d4', '#475569'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', padding: 20, font: { size: 12 } }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
         }
 
         // ── Filters ─────────────────────────────────────────
