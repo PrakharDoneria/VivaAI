@@ -69,3 +69,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - LinkedIn: [in/prakhardoneria](https://www.linkedin.com/in/prakhar-doneria/)
 - Instagram: [@prakhardoneria](https://instagram.com/prakhardoneria)
 `
+### 6. Using Docker (Alternative)
+If you have Docker installed, you can run the platform with a single command:
+`ash
+docker-compose up --build
+``nThe application will be available at http://localhost:5000.

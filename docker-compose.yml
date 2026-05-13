@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - /app/venv # Don't override the container's venv with local one
+    env_file:
+      - .env
+    environment:
+      - FLASK_DEBUG=1
+    restart: always
