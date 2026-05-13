@@ -4,6 +4,8 @@ from utils.validation import CreateInterviewRequest, SaveAnswersRequest
 from pydantic import ValidationError
 import uuid
 import re
+from pypdf import PdfReader
+import io
 
 interview_bp = Blueprint("interview", __name__)
 
@@ -40,12 +42,41 @@ def create():
     role = data.role
     candidate_name = data.candidate_name
     duration = data.duration
+    language = data.language
+    resume_text = data.resume_text
 
     try:
+        # Note: We are assuming create_interview is updated or we store these in session
+        from flask import session
+        session[f"resume_{room_id}"] = resume_text
+        session[f"lang_{room_id}"] = language
+        
         create_interview(room_id, role, candidate_name, duration)
         return jsonify({"status": "created", "room_id": room_id})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@interview_bp.route("/api/interview/upload-resume", methods=["POST"])
+def upload_resume():
+    if 'resume' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['resume']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    if file and file.filename.endswith('.pdf'):
+        try:
+            reader = PdfReader(io.BytesIO(file.read()))
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text()
+            
+            return jsonify({"status": "success", "text": text[:4000]})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    return jsonify({"error": "Invalid file format. Please upload a PDF."}), 400
 
 
 @interview_bp.route("/api/interview/<room_id>", methods=["GET"])

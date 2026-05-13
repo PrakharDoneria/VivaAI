@@ -111,6 +111,27 @@ el.textContent = icon + msg;
             const name = document.getElementById("candidateName").value.trim();
             const role = document.getElementById("role").value;
             const duration = parseInt(document.getElementById("duration").value) || 10;
+            const language = document.getElementById("language").value;
+            let resumeText = "";
+
+            const resumeFile = document.getElementById("resumeFile").files[0];
+            if (resumeFile) {
+                btn.innerHTML = "⏳ Uploading resume...";
+                const formData = new FormData();
+                formData.append("resume", resumeFile);
+                try {
+                    const uploadRes = await fetch("/api/interview/upload-resume", {
+                        method: "POST",
+                        body: formData
+                    });
+                    const uploadData = await uploadRes.json();
+                    if (uploadData.status === "success") {
+                        resumeText = uploadData.text;
+                    }
+                } catch (err) {
+                    console.error("Resume upload failed:", err);
+                }
+            }
 
             if (!name) {
                 showStatus("Please enter your name to continue.", "warning");
@@ -154,7 +175,7 @@ el.textContent = icon + msg;
                 const res = await fetch("/api/interview/create", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ room_id: roomId, role, candidate_name: name, duration })
+                    body: JSON.stringify({ room_id: roomId, role, candidate_name: name, duration, language, resume_text: resumeText })
                 });
 
                 const data = await res.json();
@@ -266,6 +287,27 @@ function toggleTheme() {
     <option value="50">50 Minutes</option>
     <option value="60">60 Minutes</option>
 </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="language">Interview Language</label>
+                    <select class="form-input" id="language">
+                        <option value="English" selected>English</option>
+                        <option value="Hindi">Hindi (हिंदी)</option>
+                        <option value="Tamil">Tamil (தமிழ்)</option>
+                        <option value="Telugu">Telugu (తెలుగు)</option>
+                        <option value="Kannada">Kannada (కನ್ನಡ)</option>
+                        <option value="Malayalam">Malayalam (മലയാളం)</option>
+                        <option value="Marathi">Marathi (มరాఠీ)</option>
+                        <option value="Gujarati">Gujarati (ગુજરાતી)</option>
+                        <option value="Bengali">Bengali (বাংলা)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="resumeFile">Upload Resume (PDF - Optional)</label>
+                    <input class="form-input" id="resumeFile" type="file" accept=".pdf">
+                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">AI will generate questions based on your experience.</p>
                 </div>
 
                 <!-- Mic Test Section -->

@@ -10,6 +10,8 @@ let timeRemaining = 0;
 let qTimeRemaining = 0;
 let roleValue = "Software Developer";
 let interviewDurationMins = 10;
+window.interviewLanguage = "English";
+let resumeText = "";
 
 const MAX_QUESTIONS = 6;
 const Q_DURATION = 120; // 2 minutes per question
@@ -36,6 +38,12 @@ function initInterview() {
 
     const metaDuration = document.getElementById("metaDuration");
     if (metaDuration) interviewDurationMins = parseInt(metaDuration.value) || 10;
+
+    const metaLanguage = document.getElementById("metaLanguage");
+    if (metaLanguage) window.interviewLanguage = metaLanguage.value || "English";
+
+    const metaResume = document.getElementById("metaResume");
+    if (metaResume) resumeText = metaResume.value || "";
 
     // Set up button states
     const stopBtn = document.getElementById("stopBtn");
@@ -94,7 +102,9 @@ async function fetchNextQuestion(answerText) {
             body: JSON.stringify({
                 role: roleValue,
                 answer: answerText,
-                question_history: questionHistory
+                question_history: questionHistory,
+                resume_text: resumeText,
+                language: window.interviewLanguage
             })
         });
 

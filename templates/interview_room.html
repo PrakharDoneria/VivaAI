@@ -82,6 +82,8 @@
     <input type="hidden" id="metaRole" value="{{ interview.role if interview else 'Software Developer' }}">
     <input type="hidden" id="metaName" value="{{ interview.candidate_name if interview else 'Candidate' }}">
     <input type="hidden" id="metaDuration" value="{{ interview.duration if interview else 10 }}">
+    <input type="hidden" id="metaLanguage" value="{{ session.get('lang_' + room_id, 'English') }}">
+    <input type="hidden" id="metaResume" value="{{ session.get('resume_' + room_id, '') }}">
 
     <main class="container">
         <div id="statusMsg" class="status-msg fade-in"></div>
