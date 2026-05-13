@@ -45,8 +45,9 @@ pip install -r requirements.txt
 ### 4. Configuration
 Create a `.env` file in the root directory and add your environment variables (refer to `.env.example`):
 ```env
+SECRET_KEY=your_secret_key_here
+ALLOWED_ORIGINS=http://localhost:5000
 SARVAM_API_KEY=your_api_key_here
-FLASK_SECRET_KEY=your_secret_key_here
 ```
 
 ### 5. Run the Application

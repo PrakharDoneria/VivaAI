@@ -5,7 +5,7 @@ load_dotenv()
 
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "vivaai-secret")
+    SECRET_KEY = os.getenv("SECRET_KEY")
 
     # Optional. When set, state-changing API routes require matching X-API-Key header.
     # Use a value distinct from SECRET_KEY; never commit real keys.

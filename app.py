@@ -14,6 +14,16 @@ from routes.interview_routes import interview_bp
 from routes.history_routes import history_bp
 from webrtc.signaling import register_signaling_events
 
+
+if not Config.SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is required before starting the app.")
+
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -21,7 +31,7 @@ limiter.init_app(app)
 
 socketio = SocketIO(
     app,
-    cors_allowed_origins="*",
+    cors_allowed_origins=allowed_origins,
     async_mode="threading",
     logger=False,
     engineio_logger=False
