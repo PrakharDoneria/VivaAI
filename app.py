@@ -7,6 +7,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO
 
 from config import Config
+from limiter_ext import limiter
 from models.interview import init_db
 from routes.ai_routes import ai_bp
 from routes.interview_routes import interview_bp
@@ -15,6 +16,8 @@ from webrtc.signaling import register_signaling_events
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+limiter.init_app(app)
 
 socketio = SocketIO(
     app,
@@ -32,6 +35,12 @@ app.register_blueprint(history_bp)
 
 # Register WebRTC signaling socket events
 register_signaling_events(socketio)
+
+
+@app.context_processor
+def inject_client_config():
+    """Expose optional API key to templates for X-API-Key header (same-origin limitation applies)."""
+    return {"vivaai_api_key": app.config.get("VIVAAI_API_KEY") or ""}
 
 
 @app.route("/")
@@ -64,4 +73,4 @@ if __name__ == "__main__":
         port=Config.PORT,
         debug=Config.DEBUG,
         allow_unsafe_werkzeug=True
-    )
+    )

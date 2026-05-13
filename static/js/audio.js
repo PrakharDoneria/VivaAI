@@ -48,6 +48,7 @@ async function transcribeRecordedAudio(audioBlob) {
 
         const response = await fetch("/api/ai/transcribe", {
             method: "POST",
+            headers: vivaaiApiHeaders({}),
             body: formData
         });
 
