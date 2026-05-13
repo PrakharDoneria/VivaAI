@@ -55,6 +55,13 @@ python app.py
 ```
 The application will be available at `http://localhost:5000`.
 
+### 6. Using Docker (Alternative)
+If you have Docker installed, you can run the platform with a single command:
+```bash
+docker-compose up --build
+```
+The application will be available at `http://localhost:5000`.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
@@ -68,9 +75,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Prakhar Doneria**
 - LinkedIn: [in/prakhardoneria](https://www.linkedin.com/in/prakhar-doneria/)
 - Instagram: [@prakhardoneria](https://instagram.com/prakhardoneria)
-`
-### 6. Using Docker (Alternative)
-If you have Docker installed, you can run the platform with a single command:
-`ash
-docker-compose up --build
-``nThe application will be available at http://localhost:5000.
+
+---
