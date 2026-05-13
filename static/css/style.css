@@ -1240,3 +1240,54 @@ audio {
     .batch-toolbar { flex-direction: column; text-align: center; }
     .batch-toolbar-right { justify-content: center; }
 }
+/* -- Dashboard Styles ---------------------------------- */
+.dashboard-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.chart-card h3 {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+.chart-container {
+    height: 300px;
+    position: relative;
+}
+
+@media (max-width: 992px) {
+    .dashboard-row { grid-template-columns: 1fr; }
+}
+
+/* -- Premium AI Speaking Animation --------------------- */
+.ai-speaking {
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-speaking::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    animation: wave-animation 1.5s ease-in-out infinite;
+}
+
+@keyframes wave-animation {
+    0%, 100% { transform: scaleX(0.1); opacity: 0; }
+    50% { transform: scaleX(1); opacity: 1; }
+}
+
+.pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+    50% { box-shadow: 0 0 20px 5px var(--accent-glow); }
+}
