@@ -16,30 +16,34 @@ def history_page():
 def list_interviews():
     try:
         interviews = get_all_interviews()
-        return jsonify({"interviews": interviews})
+        return jsonify({"interviews": [i.to_dict() for i in interviews]})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 def _interview_to_export_dict(row):
-    """Convert a raw interview DB row (dict) into a clean export dict."""
+    """Convert an Interview model or dict into a clean export dict."""
+    if hasattr(row, 'to_dict'):
+        row_dict = row.to_dict()
+    else:
+        row_dict = row
     qa_history = []
-    if row.get("qa_history"):
+    if row_dict.get("qa_history"):
         try:
-            qa_history = json.loads(row["qa_history"])
+            qa_history = json.loads(row_dict["qa_history"])
         except (json.JSONDecodeError, TypeError):
             qa_history = []
 
     return {
-        "candidate_name": row.get("candidate_name", ""),
-        "role": row.get("role", ""),
-        "room_id": row.get("room_id", ""),
-        "duration_minutes": row.get("duration", ""),
-        "status": row.get("status", ""),
-        "created_at": row.get("created_at", ""),
-        "ended_at": row.get("ended_at", ""),
+        "candidate_name": row_dict.get("candidate_name", ""),
+        "role": row_dict.get("role", ""),
+        "room_id": row_dict.get("room_id", ""),
+        "duration_minutes": row_dict.get("duration", ""),
+        "status": row_dict.get("status", ""),
+        "created_at": row_dict.get("created_at", ""),
+        "ended_at": row_dict.get("ended_at", ""),
         "qa_history": qa_history,
-        "report": row.get("report", ""),
+        "report": row_dict.get("report", ""),
     }
 
 
@@ -96,7 +100,7 @@ def export_single(room_id):
     if not interview:
         return jsonify({"error": "Interview not found"}), 404
 
-    export_data = _interview_to_export_dict(dict(interview))
+    export_data = _interview_to_export_dict(interview)
 
     if fmt == "csv":
         csv_str = _build_csv([export_data])

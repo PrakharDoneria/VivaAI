@@ -7,8 +7,9 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO
 
 from config import Config
-from limiter_ext import limiter
 from models.interview import init_db
+from extensions import db
+from models.interview import Interview
 from routes.ai_routes import ai_bp
 from routes.interview_routes import interview_bp
 from routes.history_routes import history_bp
@@ -17,7 +18,8 @@ from webrtc.signaling import register_signaling_events
 app = Flask(__name__)
 app.config.from_object(Config)
 
-limiter.init_app(app)
+# Initialize extensions
+db.init_app(app)
 
 socketio = SocketIO(
     app,
@@ -37,12 +39,6 @@ app.register_blueprint(history_bp)
 register_signaling_events(socketio)
 
 
-@app.context_processor
-def inject_client_config():
-    """Expose optional API key to templates for X-API-Key header (same-origin limitation applies)."""
-    return {"vivaai_api_key": app.config.get("VIVAAI_API_KEY") or ""}
-
-
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -55,7 +51,8 @@ def not_found(e):
 
 if __name__ == "__main__":
     # Initialize database
-    init_db()
+    with app.app_context():
+        db.create_all()
 
     # Create required directories
     os.makedirs(Config.AUDIO_FOLDER, exist_ok=True)
