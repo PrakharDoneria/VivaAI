@@ -1,11 +1,13 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "vivaai-secret")
+    SECRET_KEY = os.environ.get("SECRET_KEY") or os.environ.get("FLASK_SECRET_KEY", "vivaai-secret")
 
     # Optional. When set, state-changing API routes require matching X-API-Key header.
     # Use a value distinct from SECRET_KEY; never commit real keys.
