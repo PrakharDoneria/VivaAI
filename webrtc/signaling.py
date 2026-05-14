@@ -25,6 +25,7 @@ def _count_in_room(room_id):
 
 
 def register_signaling_events(socketio):
+    from models.interview import get_interview
 
     def validate_room(data):
         room = data.get("room")
@@ -36,16 +37,28 @@ def register_signaling_events(socketio):
     def on_join(data):
         from flask import request as flask_request
         room = validate_room(data)
-        if not room: return
-        
+        if not room:
+            emit("error", {"message": "Invalid room"})
+            return
+
+        interview = get_interview(room)
+        if not interview or interview["status"] != "active":
+            emit("error", {"message": "Invalid or expired room"})
+            return
+
         sid = flask_request.sid
 
-        join_room(room)
-        _add_to_room(room, sid)
+        with _rooms_lock:
+            current_members = _rooms.get(room, set())
+            if sid not in current_members and len(current_members) >= 2:
+                emit("error", {"message": "Room is full"})
+                return
 
-        count = _count_in_room(room)
+            join_room(room)
+            _add_to_room(room, sid)
+            count = len(_rooms.get(room, set()))
 
-        # Tell joining user if they're first (initiator) or second
+        # Tell joining user if they're first (initiator) or second.
         emit("room-joined", {
             "room": room,
             "is_initiator": count == 1
