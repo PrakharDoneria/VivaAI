@@ -4,6 +4,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _env(name, default=None, cast=str):
+    value = os.getenv(name, default)
+    if value is None:
+        return None
+    if cast is bool:
+        return str(value).lower() in ("true", "1", "yes")
+    return cast(value)
+
+
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "vivaai-secret")
 
@@ -17,13 +26,13 @@ class Config:
     SARVAM_STT_LANGUAGE = os.environ.get("SARVAM_STT_LANGUAGE", "en-IN")
     SARVAM_STT_CODEC = os.environ.get("SARVAM_STT_CODEC", "webm")
 
-    DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
+    DEBUG = _env("DEBUG", True, bool)
 
-    HOST = os.environ.get("HOST", "0.0.0.0")
-    PORT = int(os.environ.get("PORT", 5000))
+    HOST = _env("HOST", "0.0.0.0")
+    PORT = _env("PORT", 5000, int)
 
-    INTERVIEW_DURATION_MINUTES = int(os.environ.get("INTERVIEW_DURATION_MINUTES", 10))
-    MAX_QUESTIONS = int(os.environ.get("MAX_QUESTIONS") or 6)
+    INTERVIEW_DURATION_MINUTES = _env("INTERVIEW_DURATION_MINUTES", 10, int)
+    MAX_QUESTIONS = _env("MAX_QUESTIONS", 6, int)
 
     AUDIO_FOLDER = "static/audio/questions"
     ANSWERS_FOLDER = "static/audio/answers"
