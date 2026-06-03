@@ -214,6 +214,20 @@
         </div>
     </div>
 
+    <!-- Pause Overlay -->
+    <div id="pauseOverlay" class="modal-overlay" style="display: none;">
+        <div class="modal-content card" style="border-top: 4px solid var(--danger);">
+            <div style="font-size: 40px; margin-bottom: 12px;">⚠️</div>
+            <h3>Interview Paused</h3>
+            <p id="pauseReason" style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem;">
+                Please ensure you are facing the camera and are alone in the frame.
+            </p>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+                The session will resume automatically once a single face is detected.
+            </div>
+        </div>
+    </div>
+
     <!-- Room ID available globally -->
     <script>
         const roomId = "{{ room_id }}";
@@ -241,6 +255,13 @@
 
     <!-- Load scripts in correct order -->
     <script>window.__VIVAAI_API_KEY__ = {{ (vivaai_api_key or '')|tojson }};</script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@latest/dist/speech-commands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="/static/js/eyeTracker.js"></script>
+    <script src="/static/js/audioDetector.js"></script>
+    <script src="/static/js/session.js"></script>
     <script src="/static/js/api.js"></script>
     <script src="/static/js/socket.js"></script>
     <script src="/static/js/webrtc.js"></script>

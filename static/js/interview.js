@@ -27,6 +27,95 @@ function sanitizeAiText(text) {
     return cleaned.trim();
 }
 
+let isSessionPaused = false;
+let faceMesh = null;
+let faceMeshActive = false;
+
+function pauseSession(reason) {
+    if (isSessionPaused || !interviewActive) return;
+    isSessionPaused = true;
+    console.log("[Interview] Session paused:", reason);
+
+    // Show pause overlay
+    const overlay = document.getElementById("pauseOverlay");
+    const reasonEl = document.getElementById("pauseReason");
+    if (overlay) overlay.style.display = "flex";
+    if (reasonEl) reasonEl.textContent = reason;
+
+    // Pause timers
+    if (interviewTimer) clearInterval(interviewTimer);
+    if (qTimer) clearInterval(qTimer);
+
+    // Pause recording if active
+    if (typeof isRecording !== "undefined" && isRecording) {
+        if (typeof mediaRecorder !== "undefined" && mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.pause();
+        }
+        if (typeof recognition !== "undefined" && recognition) {
+            try { recognition.stop(); } catch (e) { }
+        }
+    }
+    
+    // Pause AI voice audio if playing
+    const aiVoice = document.getElementById("aiVoice");
+    if (aiVoice && !aiVoice.paused) {
+        aiVoice.pause();
+    }
+}
+
+function resumeSession() {
+    if (!isSessionPaused || !interviewActive) return;
+    isSessionPaused = false;
+    console.log("[Interview] Session resumed");
+
+    // Hide pause overlay
+    const overlay = document.getElementById("pauseOverlay");
+    if (overlay) overlay.style.display = "none";
+
+    // Resume timers
+    interviewTimer = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+        if (timeRemaining <= 0) {
+            clearInterval(interviewTimer);
+            endInterview();
+        }
+    }, 1000);
+
+    // Only resume qTimer if it was actually running (i.e. AI is waiting for answer)
+    const indicator = document.getElementById("aiIndicator");
+    if (indicator && indicator.className.includes("ai-waiting")) {
+        const ring = document.getElementById("qTimerRing");
+        if (ring) ring.style.display = "flex";
+        qTimer = setInterval(() => {
+            qTimeRemaining--;
+            updateQuestionTimerUI();
+            if (qTimeRemaining <= 0) {
+                stopQuestionTimer();
+                handleQuestionTimeout();
+            }
+        }, 1000);
+    }
+
+    // Resume recording if active
+    if (typeof isRecording !== "undefined" && isRecording) {
+        if (typeof mediaRecorder !== "undefined" && mediaRecorder && mediaRecorder.state === "paused") {
+            mediaRecorder.resume();
+        }
+        if (typeof recognition !== "undefined" && recognition) {
+            try { recognition.start(); } catch (e) { }
+        }
+    }
+
+    // Resume AI voice audio if it was paused
+    const aiVoice = document.getElementById("aiVoice");
+    if (aiVoice && aiVoice.paused && aiVoice.src && !aiVoice.ended) {
+        aiVoice.play().catch(e => console.warn("[Interview] Audio resume failed:", e));
+    }
+
+    showStatus("Session resumed!", "success");
+}
+
 // ── Init ─────────────────────────────────────────────────
 
 function initInterview() {
@@ -69,6 +158,16 @@ async function startInterview() {
 
     interviewActive = true;
     if (startBtn) startBtn.textContent = "Interview in progress…";
+
+    // Initialize proctoring using session.js startProctoring helper
+    const videoElement = document.getElementById("localVideo");
+    if (typeof startProctoring === "function" && videoElement) {
+        try {
+            await startProctoring(videoElement);
+        } catch (err) {
+            console.error("[Interview] Proctoring start failed:", err);
+        }
+    }
 
     showStatus("AI Interviewer is preparing your first question…", "info");
     setQuestionStatus("thinking");
@@ -187,8 +286,17 @@ async function sendAnswer(answerText) {
 
 async function endInterview() {
     interviewActive = false;
+    faceMeshActive = false;
     clearInterval(interviewTimer);
     stopQuestionTimer();
+
+    if (typeof AUDIO_DETECTOR !== "undefined") {
+        try {
+            AUDIO_DETECTOR.destroy();
+        } catch (e) {
+            console.warn("[Interview] AUDIO_DETECTOR destroy error:", e);
+        }
+    }
 
     showStatus("Interview complete! Generating your report…", "info");
     setQuestionStatus("done");
@@ -240,6 +348,43 @@ function displayReport(reportText) {
                 reportContent.appendChild(p);
             }
         });
+
+        // Append Eye-Tracking Metrics
+        const trackerReport = EYE_TRACKER.getReport();
+        const statsDiv = document.createElement("div");
+        statsDiv.className = "card";
+        statsDiv.style.marginTop = "24px";
+        statsDiv.style.borderTop = "4px solid var(--accent)";
+        statsDiv.style.padding = "16px";
+        
+        const inattentionPercent = (trackerReport.inattentionRatio * 100).toFixed(1);
+        const statusHtml = trackerReport.inattentionRatio >= 0.20 
+            ? `<span style="color: var(--danger); font-weight: bold;">⚠️ Flagged for Cumulative Inattention</span>` 
+            : `<span style="color: var(--success); font-weight: bold;">✅ Attention Check Passed</span>`;
+
+        statsDiv.innerHTML = `
+            <h3 style="margin-top: 0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                👁️ Eye Tracking & Attention Report
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Total Off-Screen Time</div>
+                    <div style="font-size: 1.25rem; font-weight: 600;">${(trackerReport.totalOffScreenMs / 1000).toFixed(1)}s</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Session Duration</div>
+                    <div style="font-size: 1.25rem; font-weight: 600;">${(trackerReport.sessionDurationMs / 1000).toFixed(1)}s</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Inattention Ratio</div>
+                    <div style="font-size: 1.25rem; font-weight: 600;">${inattentionPercent}%</div>
+                </div>
+            </div>
+            <div style="padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.9rem;">
+                <strong>Status:</strong> ${statusHtml}
+            </div>
+        `;
+        reportContent.appendChild(statsDiv);
     }
 
     // Scroll to report
