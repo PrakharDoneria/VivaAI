@@ -6,26 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>window.__VIVAAI_API_KEY__ = {{ (vivaai_api_key or '')|tojson }};</script>
     <script src="/static/js/api.js"></script>
+    <script src="/static/js/icons.js"></script>
     <script>
-        // Apply saved theme on load
-        (function() {
-            const saved = localStorage.getItem("vivaai-theme") || "dark";
-            document.documentElement.setAttribute("data-theme", saved);
-            const btn = document.getElementById("themeToggle");
-            if (btn) btn.textContent = saved === "light" ? "☀️" : "🌙";
-        })();
+        document.documentElement.setAttribute("data-theme", "dark");
+
         function showStatus(msg, type = "info") {
             const el = document.getElementById("statusMsg");
-            let icon = "";
-
-if (type === "success") icon = "✅ ";
-else if (type === "error") icon = "❌ ";
-else if (type === "warning") icon = "⚠️ ";
-else icon = "ℹ️ ";
-
-el.textContent = icon + msg;
+            el.innerHTML = `<span>${msg}</span>`;
             el.className = `status-msg status-${type}`;
-            el.style.display = "block";
+            el.style.display = "flex";
         }
 
         let micStream = null;
@@ -42,7 +31,6 @@ el.textContent = icon + msg;
                 btn.disabled = true;
 
                 micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = 256;
@@ -59,28 +47,20 @@ el.textContent = icon + msg;
                 function updateMeter() {
                     analyser.getByteFrequencyData(dataArray);
                     let sum = 0;
-                    for (let i = 0; i < dataArray.length; i++) {
-                        sum += dataArray[i];
-                    }
+                    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
                     const average = sum / dataArray.length;
-
-                    // Map frequency amplitude average to 0-100% width
                     const percent = Math.min(100, (average / 100) * 100);
                     volumeBar.style.width = percent + "%";
-
-                    // Change color based on volume (pitch proxy)
-                    if (percent > 80) volumeBar.style.background = "#ef4444"; // red (too loud)
-                    else if (percent > 50) volumeBar.style.background = "#eab308"; // yellow
-                    else volumeBar.style.background = "#22c55e"; // green
-
+                    if (percent > 80) volumeBar.style.background = "#ef4444";
+                    else if (percent > 50) volumeBar.style.background = "#eab308";
+                    else volumeBar.style.background = "#22c55e";
                     animationId = requestAnimationFrame(updateMeter);
                 }
 
                 updateMeter();
                 showStatus("Microphone access granted. Speak to test your audio level.", "success");
             } catch (err) {
-                console.error(err);
-                btn.textContent = "🎤 Test Microphone";
+                btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/><path d="M9 21h6"/></svg><span>Test Microphone</span>`;
                 btn.disabled = false;
                 showStatus("Microphone access denied. Please allow permissions.", "error");
             }
@@ -88,23 +68,17 @@ el.textContent = icon + msg;
 
         function stopMicTest() {
             if (animationId) cancelAnimationFrame(animationId);
-            if (micStream) {
-                micStream.getTracks().forEach(track => track.stop());
-                micStream = null;
-            }
-            if (audioContext && audioContext.state !== "closed") {
-                audioContext.close();
-            }
+            if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+            if (audioContext && audioContext.state !== "closed") audioContext.close();
 
             const btn = document.getElementById("testMicBtn");
             const controls = document.getElementById("micMeterControls");
             if (btn) {
                 btn.style.display = "inline-flex";
-                btn.textContent = "🎤 Test Microphone";
+                btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/><path d="M9 21h6"/></svg><span>Test Microphone</span>`;
                 btn.disabled = false;
             }
             if (controls) controls.style.display = "none";
-
             const el = document.getElementById("statusMsg");
             if (el && el.classList.contains("status-success")) el.style.display = "none";
         }
@@ -122,20 +96,17 @@ el.textContent = icon + msg;
 
             const btn = document.getElementById("startBtn");
             btn.disabled = true;
-            btn.innerHTML = "⏳ Checking permissions...";
+            btn.innerHTML = `<svg class="icon icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Checking permissions...</span>`;
 
-            // Pre-flight check for camera & mic permissions
             try {
-                if (typeof stopMicTest === "function") stopMicTest(); // Ensure our test mic is closed
-
+                if (typeof stopMicTest === "function") stopMicTest();
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error("Your browser does not support camera/microphone access in this context (try using localhost instead of your IP).");
+                    throw new Error("Your browser does not support camera/microphone access in this context.");
                 }
                 const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                // Permission granted, close tracks immediately
                 testStream.getTracks().forEach(track => track.stop());
             } catch (err) {
-                let msg = "Camera/microphone access denied. Please click the camera icon in your address bar to allow permissions, then try again.";
+                let msg = "Camera/microphone access denied. Click the camera icon in your address bar to allow permissions.";
                 if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
                     msg = "No camera or microphone found. Please connect your devices and try again.";
                 } else if (err.message && err.message.includes("context")) {
@@ -143,11 +114,11 @@ el.textContent = icon + msg;
                 }
                 showStatus(msg, "error");
                 btn.disabled = false;
-                btn.textContent = "🚀 Start Interview Session";
+                btn.innerHTML = `<span>Start Interview Session</span>`;
                 return;
             }
 
-            btn.innerHTML = "🚀 Creating room...";
+            btn.innerHTML = `<svg class="icon icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Creating room...</span>`;
             showStatus("Permissions granted. Setting up your interview room…", "info");
 
             const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -158,9 +129,7 @@ el.textContent = icon + msg;
                     headers: vivaaiApiHeaders({ "Content-Type": "application/json" }),
                     body: JSON.stringify({ room_id: roomId, role, candidate_name: name, duration })
                 });
-
                 const data = await res.json();
-
                 if (data.status === "created") {
                     window.location.href = `/interview/${data.room_id}`;
                 } else {
@@ -169,71 +138,194 @@ el.textContent = icon + msg;
             } catch (err) {
                 showStatus("Error: " + err.message, "error");
                 btn.disabled = false;
-                btn.textContent = "🚀 Start Interview Session";
+                btn.innerHTML = `<span>Start Interview Session</span>`;
             }
         }
 
-       document.getElementById("candidateName").addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-        createInterview();
-    }
-});
-window.onload = () => {
-    document.getElementById("candidateName").focus();
-};
+        window.onload = () => {
+            document.getElementById("candidateName").addEventListener("keypress", (e) => {
+                if (e.key === "Enter") createInterview();
+            });
+            document.getElementById("candidateName").focus();
 
-// Theme toggle
-function toggleTheme() {
-    const html = document.documentElement;
-    const btn = document.getElementById("themeToggle");
-    const isDark = html.getAttribute("data-theme") !== "light";
-    html.setAttribute("data-theme", isDark ? "light" : "dark");
-    btn.textContent = isDark ? "☀️" : "🌙";
-    localStorage.setItem("vivaai-theme", isDark ? "light" : "dark");
-}
-
+            // Stagger feature card entrance
+            document.querySelectorAll('.feature-card').forEach((el, i) => {
+                el.style.animationDelay = `${0.1 + i * 0.08}s`;
+            });
+        };
     </script>
-    <meta name="description"
-    content="VivaAI — AI-powered real-time video call interview platform. Practice technical and HR interviews with an intelligent AI interviewer.">
+    <meta name="description" content="VivaAI — AI-powered real-time video call interview platform.">
     <title>VivaAI — AI Interview Platform</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* ── Scanline texture overlay ── */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.012) 2px,
+                rgba(255,255,255,0.012) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Animated waveform logo ── */
+        .logo-icon svg path {
+            transform-origin: bottom center;
+            animation: wave-bar 1.4s ease-in-out infinite;
+        }
+        .logo-icon svg path:nth-child(1) { animation-delay: 0s; }
+        .logo-icon svg path:nth-child(2) { animation-delay: 0.15s; }
+        .logo-icon svg path:nth-child(3) { animation-delay: 0.3s; }
+        .logo-icon svg path:nth-child(4) { animation-delay: 0.45s; }
+
+        @keyframes wave-bar {
+            0%, 100% { opacity: 0.5; transform: scaleY(0.6); }
+            50%       { opacity: 1;   transform: scaleY(1.2); }
+        }
+
+        /* ── Hero title — letter stagger ── */
+        .hero-title {
+            animation: title-in 0.6s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        .hero-subtitle {
+            animation: title-in 0.6s cubic-bezier(0.22,1,0.36,1) 0.1s both;
+        }
+        @keyframes title-in {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Card entrance ── */
+        .create-card {
+            animation: card-rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.18s both;
+        }
+        @keyframes card-rise {
+            from { opacity: 0; transform: translateY(28px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Feature cards ── */
+        .feature-card {
+            opacity: 0;
+            animation: feature-in 0.45s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes feature-in {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Start button shimmer ── */
+        #startBtn {
+            overflow: hidden;
+        }
+        #startBtn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+            transform: skewX(-20deg);
+            transition: none;
+        }
+        #startBtn:not(:disabled):hover::before {
+            animation: shimmer 0.6s ease;
+        }
+        @keyframes shimmer {
+            from { left: -100%; }
+            to   { left: 160%; }
+        }
+
+        /* ── Window chrome dot pulse ── */
+        .window-chrome-dot.live {
+            animation: live-pulse 2s ease-in-out infinite;
+        }
+        @keyframes live-pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+            50%       { opacity: 0.8; box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+        }
+
+        /* ── Feature icon hover ── */
+        .feature-card:hover .feature-icon svg {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+        .feature-icon svg { transition: transform 0.2s ease; }
+
+        /* ── Accent underline on hero title ── */
+        .hero-title span {
+            position: relative;
+            display: inline-block;
+        }
+        .hero-title span::after {
+            content: '';
+            position: absolute;
+            left: 0; bottom: -4px;
+            height: 3px;
+            width: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            transform: scaleX(0);
+            transform-origin: left;
+            animation: underline-in 0.5s cubic-bezier(0.22,1,0.36,1) 0.55s forwards;
+        }
+        @keyframes underline-in {
+            from { transform: scaleX(0); }
+            to   { transform: scaleX(1); }
+        }
+
+        /* Status message with icon gap */
+        .status-msg { gap: 8px; }
+    </style>
 </head>
 
 <body>
 
     <header class="header">
         <a class="logo" href="/">
-            <div class="logo-icon">🤖</div>
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="18" height="18" aria-hidden="true">
+                    <path d="M4 12v1"/>
+                    <path d="M9 8v9"/>
+                    <path d="M14 5v15"/>
+                    <path d="M19 9v7"/>
+                </svg>
+            </div>
             <span class="logo-text">VivaAI</span>
         </a>
         <div style="display:flex; align-items:center; gap:10px;">
-    <a href="/history" class="btn btn-ghost btn-sm" style="text-decoration:none;">📊 History</a>
-    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
-    <span class="header-badge">Beta</span>
-</div>
+            <a href="/history" class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 19V11"/><path d="M11 19V5"/><path d="M18 19v-7"/>
+                </svg>
+                History
+            </a>
+        </div>
     </header>
 
     <main>
         <section class="hero container">
-            <div class="hero-eyebrow">
-                <span>✦</span> AI-Powered Interview Platform
-            </div>
-            <h1 class="hero-title">Ace Your Next Interview<br>with AI</h1>
+            <h1 class="hero-title">Ace Your Next<br><span>Interview</span> with AI</h1>
             <p class="hero-subtitle">
-                Practice real-time video interviews with an AI interviewer that adapts to your answers, gives voice
-                feedback, and generates detailed performance reports.
+                Practice real-time video interviews with an AI that adapts to your answers,
+                gives voice feedback, and generates detailed performance reports.
             </p>
 
             <!-- Create Interview Card -->
-            <div class="card create-card fade-in">
-                <h2 style="margin-bottom: 24px; font-size: 1.4rem;">Start an Interview</h2>
+            <div class="card create-card">
+                <h2 style="margin-bottom: 28px; font-size: 1.35rem;">Start an Interview</h2>
 
                 <div id="statusMsg" class="status-msg"></div>
 
                 <div class="form-group">
                     <label class="form-label" for="candidateName">Your Name</label>
-                    <input class="form-input" id="candidateName" type="text" placeholder="e.g. Priya Sharma"
-                        autocomplete="name">
+                    <input class="form-input" id="candidateName" type="text" placeholder="e.g. Priya Sharma" autocomplete="name">
                 </div>
 
                 <div class="form-group">
@@ -257,73 +349,88 @@ function toggleTheme() {
 
                 <div class="form-group">
                     <label class="form-label" for="duration">Interview Duration</label>
-                    <!-- Replace existing duration select -->
-<select class="form-input" id="duration">
-    <option value="5">5 Minutes</option>
-    <option value="10" selected>10 Minutes</option>
-    <option value="15">15 Minutes</option>
-    <option value="20">20 Minutes</option>
-    <option value="30">30 Minutes</option>
-    <option value="40">40 Minutes</option>
-    <option value="50">50 Minutes</option>
-    <option value="60">60 Minutes</option>
-</select>
+                    <select class="form-input" id="duration">
+                        <option value="5">5 Minutes</option>
+                        <option value="10" selected>10 Minutes</option>
+                        <option value="15">15 Minutes</option>
+                        <option value="20">20 Minutes</option>
+                        <option value="30">30 Minutes</option>
+                        <option value="40">40 Minutes</option>
+                        <option value="50">50 Minutes</option>
+                        <option value="60">60 Minutes</option>
+                    </select>
                 </div>
 
-                <!-- Mic Test Section -->
-                <div class="form-group mic-test-group"
-                    style="text-align: center; border: 1px dashed rgba(255,255,255,0.2); padding: 16px; border-radius: 8px;">
-                    <label class="form-label" style="text-align: left;">Audio Test (Optional)</label>
-                    <button class="btn btn-ghost" id="testMicBtn" onclick="testMicrophone()" type="button"
-                        style="width: 100%; border: 1px solid var(--border-color);">
-                        🎤 Test Microphone
+                <!-- Mic Test -->
+                <div class="form-group mic-test-group" style="border: 1px dashed var(--border-strong); padding: 16px; border-radius: 8px;">
+                    <label class="form-label" style="text-align: left; margin-bottom: 8px;">Audio Check <span style="color:var(--text-muted-soft); font-weight:400; text-transform:none; letter-spacing:0;">— optional</span></label>
+                    <button class="btn btn-ghost" id="testMicBtn" onclick="testMicrophone()" type="button" style="width: 100%; border: 1px solid var(--border);">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                            <path d="M19 11a7 7 0 0 1-14 0"/>
+                            <path d="M12 18v3"/><path d="M9 21h6"/>
+                        </svg>
+                        <span>Test Microphone</span>
                     </button>
-                    <div id="micMeterControls" style="display: none;">
-                        <span
-                            style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; display: block;">Speak
-                            to test your microphone</span>
-                        <div
-                            style="width: 100%; height: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; overflow: hidden; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                            <div id="micVolumeBar"
-                                style="height: 100%; width: 0%; background: var(--success); transition: width 0.05s ease;">
-                            </div>
+                    <div id="micMeterControls" style="display: none; margin-top: 12px;">
+                        <span style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; display: block; font-family: var(--font-mono);">speak to test your mic</span>
+                        <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
+                            <div id="micVolumeBar" style="height: 100%; width: 0%; background: var(--success); transition: width 0.05s ease; border-radius: 6px;"></div>
                         </div>
-                        <button class="btn btn-ghost btn-sm" onclick="stopMicTest()" type="button"
-                            style="color: var(--danger);">Stop Test</button>
+                        <button class="btn btn-ghost btn-sm" onclick="stopMicTest()" type="button" style="color: var(--danger); border-color: var(--danger);">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <rect x="6" y="6" width="12" height="12" rx="2"/>
+                            </svg>
+                            Stop Test
+                        </button>
                     </div>
                 </div>
 
-                <button class="btn btn-primary btn-lg" id="startBtn" onclick="createInterview()" style="width: 100%;">
-                    🚀 Start Interview Session
+                <button class="btn btn-primary btn-lg" id="startBtn" onclick="createInterview()" style="width: 100%; margin-top: 4px;">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Start Interview Session
                 </button>
 
-                <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 14px;">
-                    A shareable room link will be generated for your interviewer.
+                <p style="text-align: center; color: var(--text-muted); font-size: 0.78rem; margin-top: 14px; font-family: var(--font-mono);">
+                    a shareable room link will be generated
                 </p>
             </div>
-            
+
             <!-- Features -->
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🎥</div>
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true">
+                            <rect x="2.5" y="6" width="13" height="12" rx="2.5"/>
+                            <path d="M15.5 10.5 21 7.5v9l-5.5-3"/>
+                        </svg>
+                    </div>
                     <div class="feature-title">Real-Time Video</div>
-                    <div class="feature-desc">Browser WebRTC — no installs needed</div>
+                    <div class="feature-desc">Browser WebRTC — no installs, no plugins</div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🗣️</div>
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true">
+                            <path d="M4 12v1"/><path d="M9 8v9"/><path d="M14 5v15"/><path d="M19 9v7"/>
+                        </svg>
+                    </div>
                     <div class="feature-title">AI Voice Questions</div>
                     <div class="feature-desc">Natural TTS powered by Sarvam AI</div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">📊</div>
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true">
+                            <path d="M4 19V11"/><path d="M11 19V5"/><path d="M18 19v-7"/>
+                        </svg>
+                    </div>
                     <div class="feature-title">Instant Reports</div>
                     <div class="feature-desc">Detailed performance evaluation after each session</div>
                 </div>
             </div>
         </section>
     </main>
-    
 
 </body>
-
 </html>

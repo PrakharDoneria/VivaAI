@@ -81,3 +81,15 @@ def save(room_id):
         return jsonify({"status": "answers_saved"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@interview_bp.route("/api/proctoring/event", methods=["POST"])
+def proctoring_event():
+    data = request.get_json() or {}
+    event_type = data.get("type")
+    detail = data.get("detail", {})
+    timestamp = data.get("timestamp")
+    is_advisory = data.get("isAdvisory", False)
+
+    print(f"[{'ADVISORY' if is_advisory else 'VIOLATION'}] Type: {event_type}, Details: {detail}, Time: {timestamp}")
+    return jsonify({"status": "logged"})
